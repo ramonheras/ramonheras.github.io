@@ -6,11 +6,7 @@
     <description>Recent content on Ramon Heras</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 14 Sep 2021 00:00:00 +0000</lastBuildDate>
-    
-	<atom:link href="https://ramonheras.com/index.xml" rel="self" type="application/rss+xml" />
-    
-    
+    <lastBuildDate>Tue, 14 Sep 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://ramonheras.com/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>About</title>
       <link>https://ramonheras.com/about/</link>
@@ -18,6 +14,9 @@
       
       <guid>https://ramonheras.com/about/</guid>
       <description>Hi I&amp;rsquo;m Ramón. As an engineer I love solving complex problems, especially if I play in a motivated team. I also enjoy learning new things, I&amp;rsquo;m not afraid of new technologies and challenges. I&amp;rsquo;m really picky and I prefer to take my time to find solutions that are reliable and maintainable in the long term. Watching YouTube videos is my favorite entertainment, especially gadget reviews and unboxings.</description>
+      <content>&lt;h2 id=&#34;hi&#34;&gt;Hi&lt;/h2&gt;
+&lt;p&gt;I&amp;rsquo;m Ramón. As an engineer I love solving complex problems, especially if I play in a motivated team. I also enjoy learning new things, I&amp;rsquo;m not afraid of new technologies and challenges. I&amp;rsquo;m really picky and I prefer to take my time to find solutions that are reliable and maintainable in the long term. Watching YouTube videos is my favorite entertainment, especially gadget reviews and unboxings.&lt;/p&gt;
+</content>
     </item>
     
   </channel>
