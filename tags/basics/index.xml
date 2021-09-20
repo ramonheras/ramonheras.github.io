@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Basics on Ramon Heras</title>
+    <link>https://ramonheras.com/tags/basics/</link>
+    <description>Recent content in Basics on Ramon Heras</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sat, 01 May 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://ramonheras.com/tags/basics/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>The AXI Master interface in HLS (The Basics)</title>
+      <link>https://ramonheras.com/posts/axim-1/</link>
+      <pubDate>Sat, 01 May 2021 00:00:00 +0000</pubDate>
+      
+      <guid>https://ramonheras.com/posts/axim-1/</guid>
+      <description>The AXI4 master is a powerfull interface that supports many features, but probably the most remarkable feature is support for burst transactions (Covered in detail in this post). An AXI Master (AXIM) interface is commonly used to access the DDR memory, though it can also be used to access other cores, such as BRAM or URAM. On the other side, an AXIM is complex and requires a lot of FPGA real estate.</description>
+      <content>&lt;p&gt;The AXI4 master is a powerfull interface that supports many features, but probably the most remarkable feature is support for burst transactions (Covered in detail in this post). An AXI Master (AXIM) interface is commonly used to access the DDR memory, though it can also be used to access other cores, such as BRAM or URAM. On the other side, an AXIM is complex and requires a lot of FPGA real estate. The operating frequency is also significantly reduced in comparison to different interfaces, such as the AXI stream.&lt;/p&gt;
+&lt;p&gt;This post addresses the basics of designing an AXIM-powered IP core. It is written with the assumption that the reader has some knowledge regarding this interface. If you do not, I recommend watching &lt;a href=&#34;https://www.youtube.com/watch?v=1zw1HBsjDH8&amp;amp;list=PLaSdxhHqai2_7WZIhCszu5PLSbZURmibN&#34;&gt;these videos&lt;/a&gt; or reviewing the &lt;a href=&#34;https://developer.arm.com/documentation/ihi0022/e/AMBA-AXI3-and-AXI4-Protocol-Specification&#34;&gt;AMBA AXI specification documentation&lt;/a&gt;. Throughout this post, I will be referring to the HLS documentation quite often, in particular to &lt;a href=&#34;https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_2/ug1399-vitis-hls.pdf&#34;&gt;UG1399-v2020.2&lt;/a&gt;. As I explain later on, some concepts in the documentation are not clear enough, in my opinion.&lt;/p&gt;
+&lt;p&gt;Let&amp;rsquo;s start with some code. The code below is the simplest example using AXIM that I can think of. It takes an input array and adds the value of val to each element. Both val and the starting address from which the AXI master interface will read the array are set through an AXI-Lite slave interface.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;void&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;SimpleCore&lt;/span&gt;( &lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; inputArray[ARRAY_SIZE], &lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; outputArray[ARRAY_SIZE], ap_int&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;8&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; val){
+	&lt;span style=&#34;color:#75715e&#34;&gt;#pragma HLS interface s_axilite port=return bundle=CONTROL
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#75715e&#34;&gt;#pragma HLS interface s_axilite port=val bundle=CONTROL
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#75715e&#34;&gt;#pragma HLS interface m_axi port=inputArray offset=slave bundle=GMEM0
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#75715e&#34;&gt;#pragma HLS interface m_axi port=outputArray offset=slave bundle=GMEM0
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;
+	&lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt;(&lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; i&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;; i&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;ARRAY_SIZE; &lt;span style=&#34;color:#f92672&#34;&gt;++&lt;/span&gt;i)
+		outputArray[i] &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; inputArray[i]&lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt;val;
+ };
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;offsetslave&#34;&gt;Offset=slave?&lt;/h2&gt;
+&lt;p&gt;The AXIM is a master interface, so it is responsible for reading the data. The starting address from which to start reading is known as the slave address or offset. With the offset parameter, we specify how to tell our IP core the address. I have set it to slave, which causes the HLS tool to create a slave register to set the slave address. This register can either be read or written by your system&amp;rsquo;s processor through an AXI-Lite slave interface that is also added to your IP core.&lt;/p&gt;
+&lt;p&gt;There are other modes for this setting, such as &amp;ldquo;fixed&amp;rdquo; or &amp;ldquo;off,&amp;rdquo; but these modes are rarely used. The &amp;ldquo;direct&amp;rdquo; mode tells the HLS tool to add an extra input to the core instead of using an AXI Lite register. Finally, the &amp;ldquo;off&amp;rdquo; option does not create any offset port nor an AXI-Lite register. In this last case, the starting address is configured in the IP Integrator window (&amp;ldquo;Base address of target slave,&amp;rdquo; &lt;a href=&#34;https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_2/ug1399-vitis-hls.pdf#page=241&#34;&gt;page 241&lt;/a&gt;) when instantiating the core in the block design in Vivado. Note that this last approach does not allow you to change the address at runtime.&lt;/p&gt;
+&lt;h2 id=&#34;int-or-intsize&#34;&gt;&lt;code&gt;int*&lt;/code&gt; or &lt;code&gt;int[SIZE]&lt;/code&gt;?&lt;/h2&gt;
+&lt;p&gt;In C/C++, there is no difference between both options. However, I prefer the second option because it tells HLS the burst depth so that I do not have to specify it manually with the pragma option depth, this way you keep the pragma line cleaner. The tool might indicate that the depth is still 0 but the simulation is not going to fail, as it would do if you were not specified the size anywhere.&lt;/p&gt;
+&lt;p&gt;The depth parameter indicates the maximum burst length and is used in co-simulation. HLS uses the depth parameter to calculate the size of the FIFO that interfaces the C++ test bench with the RTL core under test. A FIFO is necessary for each streaming interface, including AXIM and AXI-Stream. If the depth parameter is not specified, the cosim is likely to fail since HLS usually cannot deduce the burst length from the code.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt; &lt;span style=&#34;color:#75715e&#34;&gt;#pragma HLS interface m_axi port=outputArray depth=100 offset=slave bundle=GMEM0
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;top-parameter&#34;&gt;Top Parameter&lt;/h2&gt;
+&lt;p&gt;The top function parameter will most likely be an array or pointer (which, in practice, are the same), but of what type? As with other interfaces, you can either use (1) a C/C++ type (int, char, etc.…), (2) an arbitrary type (ap_int, ap_uint. Check out the post &amp;ldquo;Why use arbitrary types&amp;rdquo;) or (3) a custom struct. Simplicity is best, especially with an AXI Master interface, so I tend to use an int32 because it is of the same size as the interface, 32 bits. Sometimes a struct might be more suitable, but it can be tricky due to alignment concerns—learn more about alignment in the Enabling Burst Transactions post.&lt;/p&gt;
+&lt;h2 id=&#34;last-notes-when-using-axim-powered-ip-cores&#34;&gt;Last Notes When Using AXIM Powered IP Cores&lt;/h2&gt;
+&lt;p&gt;One important precaution must be taken when setting the slave address. Make sure that this address is aligned with the interface width (normally 4 bytes). To check this, you must make sure that the starting address value modulo the interface byte width is 0 . Or, since the interface width is limited to a power of two by the standard, the first least significant bits must be 0.&lt;/p&gt;
+&lt;p&gt;$$
+\displaylines{StartingAddr \% AximTdataByteWidth== 0 == StartingAddr[(AximDataByteWidth-1):0 ]\\&lt;br&gt;
+[a:b]→range\ of\ bits\ from\ \mathbf{a}\ to\ \mathbf{b}\ boundaries\ included.\ Ej\ [2:0]→[b_2,b_1,b_0]}
+$$&lt;/p&gt;
+&lt;p&gt;When dealing with burst transactions, there is another critical aspect to remember regarding burst lengths. Learn more about this issue by reading the article &lt;strong&gt;Enabling Burst Transactions&lt;/strong&gt;.&lt;/p&gt;
+</content>
+    </item>
+    
+  </channel>
+</rss>

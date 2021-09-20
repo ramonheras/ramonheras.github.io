@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>AXI-Master :: Ramon Heras</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="" />
+<meta name="keywords" content="" />
+<meta name="robots" content="noodp" />
+<link rel="canonical" href="https://ramonheras.com/tags/axi-master/" />
+
+
+
+
+<link rel="stylesheet" href="https://ramonheras.com/assets/style.css">
+
+  <link rel="stylesheet" href="https://ramonheras.com/assets/blue.css">
+
+
+
+
+
+
+<link rel="apple-touch-icon" href="https://ramonheras.com/img/apple-touch-icon-192x192.png">
+
+  <link rel="shortcut icon" href="https://ramonheras.com/img/favicon/blue.png">
+
+
+
+<meta name="twitter:card" content="summary" />
+
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="AXI-Master">
+<meta property="og:description" content="" />
+<meta property="og:url" content="https://ramonheras.com/tags/axi-master/" />
+<meta property="og:site_name" content="Ramon Heras" />
+
+  
+    <meta property="og:image" content="https://ramonheras.com/img/favicon/blue.png">
+  
+
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+
+
+
+
+  <link href="/tags/axi-master/index.xml" rel="alternate" type="application/rss+xml" title="Ramon Heras" />
+
+
+
+
+
+
+
+
+
+
+</head>
+<body class="blue">
+
+
+<div class="container center headings--one-size">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    Ramon Heras
+  </div>
+</a>
+
+    </div>
+    
+      <div class="menu-trigger">menu</div>
+    
+  </div>
+  
+    <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+      
+    
+
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+  
+  <div class="posts">
+    
+      <div class="post on-list">
+        <h1 class="post-title">
+          <a href="https://ramonheras.com/posts/axim-2/">Enabling Burst Transactions on an AXIM Interface in HLS</a>
+        </h1>
+        <div class="post-meta">
+          <span class="post-date">
+            2021-06-01
+          </span>
+          
+            <span class="post-author">:: Ramon Heras</span>
+          
+        </div>
+
+        
+          <span class="post-tags">
+            
+            #<a href="https://ramonheras.com/tags/xilinx-hls/">Xilinx-HLS</a>&nbsp;
+            
+            #<a href="https://ramonheras.com/tags/axi-master/">AXI-Master</a>&nbsp;
+            
+            #<a href="https://ramonheras.com/tags/c&#43;&#43;/">C&#43;&#43;</a>&nbsp;
+            
+            #<a href="https://ramonheras.com/tags/burst-transactions/">Burst-Transactions</a>&nbsp;
+            
+          </span>
+        
+
+        
+
+        <div class="post-content">
+          
+          
+          Burst transactions are essential to take full advantage of the AXIM interface. After performing many tests and reading the documentation several times, I must say that there is not a well-defined behavior of Vitis HLS. In this post, I summarize my thoughts and experimentation results on optimizing burst transactions. You can find an introductory blog to this topic here.
+Unfortunately, the only way to ensure bursting is by diving into the wave viewer to check for it yourself.
+          
+          
+        </div>
+
+        
+        <div>
+          <a class="read-more button"
+            href="/posts/axim-2/">Read more →</a>
+        </div>
+        
+      </div>
+    
+      <div class="post on-list">
+        <h1 class="post-title">
+          <a href="https://ramonheras.com/posts/axim-1/">The AXI Master interface in HLS (The Basics)</a>
+        </h1>
+        <div class="post-meta">
+          <span class="post-date">
+            2021-05-01
+          </span>
+          
+            <span class="post-author">:: Ramon Heras</span>
+          
+        </div>
+
+        
+          <span class="post-tags">
+            
+            #<a href="https://ramonheras.com/tags/xilinx-hls/">Xilinx-HLS</a>&nbsp;
+            
+            #<a href="https://ramonheras.com/tags/axi-master/">AXI-Master</a>&nbsp;
+            
+            #<a href="https://ramonheras.com/tags/c&#43;&#43;/">C&#43;&#43;</a>&nbsp;
+            
+            #<a href="https://ramonheras.com/tags/basics/">Basics</a>&nbsp;
+            
+          </span>
+        
+
+        
+
+        <div class="post-content">
+          
+          
+          The AXI4 master is a powerfull interface that supports many features, but probably the most remarkable feature is support for burst transactions (Covered in detail in this post). An AXI Master (AXIM) interface is commonly used to access the DDR memory, though it can also be used to access other cores, such as BRAM or URAM. On the other side, an AXIM is complex and requires a lot of FPGA real estate.
+          
+          
+        </div>
+
+        
+        <div>
+          <a class="read-more button"
+            href="/posts/axim-1/">Read more →</a>
+        </div>
+        
+      </div>
+    
+    <div class="pagination">
+  <div class="pagination__buttons">
+    
+    
+  </div>
+</div>
+
+  </div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2021 Powered by <a href="http://gohugo.io">Hugo</a></span>
+    
+        <span>:: Theme made by <a href="https://twitter.com/panr">panr</a></span>
+      </div>
+  </div>
+</footer>
+
+<script src="https://ramonheras.com/assets/main.js"></script>
+<script src="https://ramonheras.com/assets/prism.js"></script>
+
+
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>

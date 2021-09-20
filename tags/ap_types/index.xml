@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>ap_types on Ramon Heras</title>
+    <link>https://ramonheras.com/tags/ap_types/</link>
+    <description>Recent content in ap_types on Ramon Heras</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Thu, 01 Apr 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://ramonheras.com/tags/ap_types/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Why use HLS data types</title>
+      <link>https://ramonheras.com/posts/hls-types/</link>
+      <pubDate>Thu, 01 Apr 2021 00:00:00 +0000</pubDate>
+      
+      <guid>https://ramonheras.com/posts/hls-types/</guid>
+      <description>The C/C++ language has many data types that most people are familiar with, from the basic ones, char, int, unsigned, and float, to the bit accurate std types, including int8_t, int32_t, and more. If there are so many data types to choose from, why would we even bother with new ones? What are the advantages of HLS types? How can these data types be used effectively? These questions will be answered in this post.</description>
+      <content>&lt;p&gt;The C/C++ language has many data types that most people are familiar with, from the basic ones, &lt;code&gt;char&lt;/code&gt;, &lt;code&gt;int&lt;/code&gt;, &lt;code&gt;unsigned&lt;/code&gt;, and &lt;code&gt;float&lt;/code&gt;, to the bit accurate std types, including &lt;code&gt;int8_t&lt;/code&gt;, &lt;code&gt;int32_t&lt;/code&gt;, and more. If there are so many data types to choose from, why would we even bother with new ones? What are the advantages of HLS types? How can these data types be used effectively? These questions will be answered in this post.&lt;/p&gt;
+&lt;h1 id=&#34;types&#34;&gt;Types&lt;/h1&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;arbitrary-bit-width-integer&#34;&gt;Arbitrary Bit Width Integer&lt;/h2&gt;
+&lt;p&gt;The Xilinx arbitrary library provides two arbitrary types: &lt;code&gt;ap_int&lt;/code&gt; for signed integers, and &lt;code&gt;ap_uint&lt;/code&gt; for unsigned integers. The major advantage of HLS types over standard data types is that it generates more efficient and accurate hardware, as Xilinx states. Another advantage of HLS types over other data types is the ability to create integers of any width. But, keep in mind that the wider (more bits) the data type is, the more complex it is to operate, store, and route.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span style=&#34;color:#75715e&#34;&gt;#include&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;&amp;#34;ap_int.h&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;
+&lt;span style=&#34;color:#66d9ef&#34;&gt;constexpr&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; G_MAX_IMAGE_WIDTH  &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;100&lt;/span&gt;;
+&lt;span style=&#34;color:#66d9ef&#34;&gt;constexpr&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; G_MAX_IMAGE_HEIGHT &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;10&lt;/span&gt;;
+
+&lt;span style=&#34;color:#75715e&#34;&gt;//BITS is the number of bits to store n
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;template&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;typename&lt;/span&gt; T&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt;
+&lt;span style=&#34;color:#66d9ef&#34;&gt;constexpr&lt;/span&gt; T BITS(T n){ &lt;span style=&#34;color:#66d9ef&#34;&gt;return&lt;/span&gt; (n&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;=&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;?&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;:&lt;/span&gt; BITS(n&lt;span style=&#34;color:#f92672&#34;&gt;/&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;2&lt;/span&gt;)&lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;); }
+
+&lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;main&lt;/span&gt;(){
+    &lt;span style=&#34;color:#66d9ef&#34;&gt;using&lt;/span&gt; ui32 &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; ap_uint&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;32&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt;; &lt;span style=&#34;color:#75715e&#34;&gt;//Better than unsigned int or int32_t
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;    ap_int&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt;   boolean &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; false;
+    ap_int&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;32&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt;  simple &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;55&lt;/span&gt;;
+    ap_uint&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;128&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; wide(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;123456789123456789123456789&amp;#34;&lt;/span&gt;, &lt;span style=&#34;color:#ae81ff&#34;&gt;10&lt;/span&gt;); &lt;span style=&#34;color:#75715e&#34;&gt;// big number (it does not fit in a int64)
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;    ap_uint&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;3&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt;  weight &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;0b001&lt;/span&gt;; &lt;span style=&#34;color:#75715e&#34;&gt;// small bit-wide types are commonly used, among others, in AI quantized models.
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;    ap_int&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;8&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt;   byte &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;0xFF&lt;/span&gt;;
+
+    &lt;span style=&#34;color:#66d9ef&#34;&gt;typedef&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;struct&lt;/span&gt; {
+        ap_int&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;BITS(G_IMAGE_WIDTH)&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt;  width;
+        ap_int&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;BITS(G_IMAGE_HEIGHT)&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; height;
+    } ImgSize;
+    &lt;span style=&#34;color:#66d9ef&#34;&gt;return&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;;
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Another great feature offered by the Xilinx library is the way in which &lt;code&gt;ap_int&lt;/code&gt; and &lt;code&gt;ap_uint&lt;/code&gt; treats return types for operations. When operating standard types, the return type is the same as the operands, leading to overflows (either positive or negative). For example, the addition of two chars of value 200 also returns a &lt;code&gt;char&lt;/code&gt;, but such a type cannot store the result since the upper limit for a &lt;code&gt;char&lt;/code&gt; is 255. On the other hand, HLS data types avoid losing information. The result of an operation will be of a type capable of storing any possible result, no matter the values of the operands. For instance, the addition of two &lt;code&gt;ap_int&amp;lt;8&amp;gt;&lt;/code&gt; is an &lt;code&gt;ap_int&amp;lt;9&amp;gt;&lt;/code&gt;  that cannot overflow, no matter the values of the operads. In the same manner, the multiplication results in an &lt;code&gt;ap_int&amp;lt;16&amp;gt;&lt;/code&gt;. Mixing signed and unsigned types will return a signed type, e.g., &lt;code&gt;ap_int&amp;lt;8&amp;gt;&lt;/code&gt; plus &lt;code&gt;ap_uint&amp;lt;8&amp;gt;&lt;/code&gt; is an &lt;code&gt;ap_int&amp;lt;10&amp;gt;&lt;/code&gt;, and so on.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span style=&#34;color:#75715e&#34;&gt;#include&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;&amp;lt;iostream&amp;gt;&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;#include&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;&amp;#34;ap_int.h&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;#include&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;&amp;#34;hws_utils.h&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;
+&lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;main&lt;/span&gt;(){
+    ap_int&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;8&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; i8;
+    ap_uint&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;8&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; u8;
+
+    cout &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; TypeInfo&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;decltype&lt;/span&gt;(u8 &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; u8) &lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;::&lt;/span&gt;name() &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; endl;
+        &lt;span style=&#34;color:#75715e&#34;&gt;// ap_uint&amp;lt;9&amp;gt;
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;    cout &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; TypeInfo&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;decltype&lt;/span&gt;(u8 &lt;span style=&#34;color:#f92672&#34;&gt;*&lt;/span&gt; u8) &lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;::&lt;/span&gt;name() &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; endl;
+        &lt;span style=&#34;color:#75715e&#34;&gt;// ap_uint&amp;lt;16&amp;gt;
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;    cout &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; TypeInfo&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;decltype&lt;/span&gt;(u8 &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; i8) &lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;::&lt;/span&gt;name() &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; endl; &lt;span style=&#34;color:#75715e&#34;&gt;// u8 to integer is i9, i9+i8 = i10
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;        &lt;span style=&#34;color:#75715e&#34;&gt;// ap_uint&amp;lt;10&amp;gt;
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;
+    &lt;span style=&#34;color:#66d9ef&#34;&gt;return&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;;
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+  &lt;div class=&#34;collapsable-code&#34;&gt;
+    &lt;input id=&#34;1&#34; type=&#34;checkbox&#34; checked /&gt;
+    &lt;label for=&#34;1&#34;&gt;
+      &lt;span class=&#34;collapsable-code__language&#34;&gt;C&amp;#43;&amp;#43;&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__title&#34;&gt;Auxiliary code from hws utils&lt;/span&gt;
+      &lt;span class=&#34;collapsable-code__toggle&#34; data-label-expand=&#34;Show&#34; data-label-collapse=&#34;Hide&#34;&gt;&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;pre class=&#34;language-C&amp;#43;&amp;#43;&#34; &gt;&lt;code&gt;
+template&amp;lt;typename T&amp;gt;
+struct TypeInfo;
+
+template&amp;lt;int W&amp;gt;
+struct TypeInfo&amp;lt;ap_int&amp;lt;W&amp;gt;&amp;gt;{
+    static std::string Name(){
+        std::stringstream  os;
+        os &amp;lt;&amp;lt; &amp;#34;ap_int&amp;lt;&amp;#34; &amp;lt;&amp;lt; W &amp;lt;&amp;lt; &amp;#34;&amp;gt;&amp;#34;;
+        return os.str();
+    }
+};
+template&amp;lt;int W&amp;gt;
+struct TypeInfo&amp;lt;ap_uint&amp;lt;W&amp;gt;&amp;gt;{
+    static std::string Name(){
+        std::stringstream  os;
+        os &amp;lt;&amp;lt; &amp;#34;ap_uint&amp;lt;&amp;#34; &amp;lt;&amp;lt; W &amp;lt;&amp;lt; &amp;#34;&amp;gt;&amp;#34;;
+        return os.str();
+    }
+};
+&lt;/code&gt;&lt;/pre&gt;
+  &lt;/div&gt;
+
+
+&lt;h2 id=&#34;fixed-bit-width-type&#34;&gt;Fixed Bit Width Type&lt;/h2&gt;
+&lt;p&gt;Fixed point arithmetics are essential in hardware development. This is a much simpler alternative to floating-point arithmetics while being more versatile than integers, though C/C++ does not contain types supporting fixed-point arithmetics. Implementing floating-point arithmetics requires complex logic, even with DSP (in Xilinx devices, the DSP48). However, the new Xilinx Versal lineup includes a more versatile DSP, the DSP58e, that is capable of operating floating-point data.&lt;/p&gt;
+&lt;p&gt;The Xilinx arbitrary point library allows developers to use fixed-point data, but the utility of this library does not stop here. The library also includes many other features to craft the behavior of fixed-point data types. When declaring an &lt;code&gt;ap_fixed&lt;/code&gt; or &lt;code&gt;ap_ufixed&lt;/code&gt; (the latter for unsigned fixed-point values), it is possible to choose among different overflow and rounding (quantization, as Xilinx refers to it) modes.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;ap_fixed&lt;/code&gt; comes in the shape of a template type, in which the first two template arguments are the total bit width (W), and the integer width (I).  The former is the number of bits occupied by the type, and the latter is the number of bits used to represent the integer part (See figure 1). The following two arguments are also mandatory and serve to specify the overflow (O) and rounding (Q) modes (see Table 1). Xilinx states that &lt;code&gt;AP_SAT&lt;/code&gt; requires extra hardware that can increase LUT utilization up to 20%. When resource utilization is not a concern, my personal preferences are &lt;code&gt;AP_SAT&lt;/code&gt; (saturation) and &lt;code&gt;SC_RND_CONV&lt;/code&gt; (convergent rounding). Otherwise, the default (&lt;code&gt;AP_WRAP&lt;/code&gt; and &lt;code&gt;SC_TRUNC&lt;/code&gt;) modes will work just fine. The last argument is optional and only makes sense when used alongside the &lt;code&gt;AP_WRAP&lt;/code&gt; mode. I do not find this argument particularly useful, so I leave it set to the default value (0) or a value equal to the integer width (I). If you are unfamiliar with these overflow and rounding methods, there are examples of each method in UG1399 pages 516 to 519.&lt;/p&gt;
+&lt;p&gt;
+  &lt;figure class=&#34;center&#34; &gt;
+    &lt;img src=&#34;https://ramonheras.com/images/HLS-Types/integer.jpg&#34;  alt=&#34;Fixed-Point Data Type Bits&#34;   /&gt;
+    
+  &lt;/figure&gt;
+
+
+&lt;strong&gt;Figure 1&lt;/strong&gt; Fixed-Point Data Type Bits&lt;/p&gt;
+&lt;p&gt;
+  &lt;figure class=&#34;center&#34; &gt;
+    &lt;img src=&#34;https://ramonheras.com/images/HLS-Types/table1.jpg&#34;  alt=&#34;Fixed-Point Identifier Summary&#34;   /&gt;
+    
+  &lt;/figure&gt;
+
+
+&lt;strong&gt;Table 1&lt;/strong&gt; Fixed-Point Identifier Summary &lt;a href=&#34;https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_2/ug1399-vitis-hls.pdf#page=495&#34;&gt;[UG1399-Xil2020]&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;In Table 1, the second column (&lt;code&gt;ap_fixed&lt;/code&gt; Types) lists the option aliases for C/C++, while the first column (System C Types) is for System C. Let&amp;rsquo;s see some examples.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;ap_fixed&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;10&lt;/span&gt;, &lt;span style=&#34;color:#ae81ff&#34;&gt;10&lt;/span&gt;, AP_RND_CONV, AP_SAT&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; integer;
+ap_ufixed&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;10&lt;/span&gt;, &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;, AP_RND, AP_WRAP&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; ufixed;
+
+ap_ufixed&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;10&lt;/span&gt;, &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;, AP_RND, AP_SAT&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt;    fx10;
+ap_ufixed&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;, &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;, AP_RND, AP_WRAP, &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; fx5;
+ap_ufixed&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;8&lt;/span&gt;, &lt;span style=&#34;color:#ae81ff&#34;&gt;4&lt;/span&gt;, AP_RND, AP_WRAP, &lt;span style=&#34;color:#ae81ff&#34;&gt;3&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; fx8;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Another great feature is that the resulting &lt;code&gt;ap_fixed&lt;/code&gt; of mixing types in a mathematical expression can losslessly contain any possible result, as it happens with &lt;code&gt;ap_int&lt;/code&gt;. This occurs in the same way as with &lt;code&gt;ap_int&lt;/code&gt;. First, mixing signed and unsigned types will result in a signed type. Second, the resulting type total and integer width parameters will be large enough to store any result.&lt;/p&gt;
+&lt;p&gt;However, there is a warning regarding the rounding and overflow parameters, which are set to the default values independently of the operands. This occurs even when mixed types only differ in bit widths (see the second example below).&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;cout &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; TypeInfo&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;decltype&lt;/span&gt;(fx10) &lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;::&lt;/span&gt;Name() &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; endl;
+    &lt;span style=&#34;color:#75715e&#34;&gt;// ap_ufixed&amp;lt;10, 5, SC_RND, SC_SAT&amp;gt;
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;cout &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; TypeInfo&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;decltype&lt;/span&gt;(fx10 &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; fx10) &lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;::&lt;/span&gt;Name() &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; endl; 
+    &lt;span style=&#34;color:#75715e&#34;&gt;// ap_ufixed&amp;lt;11, 5, SC_TRN, SC_WRAP&amp;gt;
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;cout &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; TypeInfo&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;decltype&lt;/span&gt;(fx10 &lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt; u8) &lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;::&lt;/span&gt;Name() &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; endl;
+    &lt;span style=&#34;color:#75715e&#34;&gt;// ap_ufixed&amp;lt;9, 9, SC_TRN, SC_WRAP&amp;gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Finally, it is worth mentioning that mixing fixed and integer types is possible! That is because an integer can be represented by an &lt;code&gt;ap_fixed&lt;/code&gt; with equal total and integer widths.&lt;/p&gt;
+&lt;h1 id=&#34;tricks&#34;&gt;Tricks&lt;/h1&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;accessing-a-specific-bit&#34;&gt;Accessing a Specific Bit&lt;/h2&gt;
+&lt;p&gt;Accessing a specific bit is quite simple using the operator [], which returns a reference to the specified bit. Accessing a specific bit is quite simple using the operator [], which returns a reference to the specified bit. Since the operator returns a reference, we can either read or write to the specified bit.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;ap_int&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;8&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; pp &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;;
+
+&lt;span style=&#34;color:#75715e&#34;&gt;// On the left side
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;pp[&lt;span style=&#34;color:#ae81ff&#34;&gt;4&lt;/span&gt;] &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;; &lt;span style=&#34;color:#75715e&#34;&gt;//MSB
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;pp[&lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;] &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;; &lt;span style=&#34;color:#75715e&#34;&gt;//LSB
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;
+&lt;span style=&#34;color:#75715e&#34;&gt;// On the right side
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt;(pp[&lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;]) cout &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;hello&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; endl;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;accessing-ranges-of-bits&#34;&gt;Accessing Ranges of Bits&lt;/h2&gt;
+&lt;p&gt;Ranges of bits can be accessed using the method &lt;code&gt;range(Hi, Low)&lt;/code&gt;, or in a more straightforward manner, the operator &lt;code&gt;(Hi, Low)&lt;/code&gt;, which takes the subvector [Hi:Low] with boundaries included. For example, &lt;code&gt;num.range(9, 5)&lt;/code&gt; or &lt;code&gt;num(9, 5)&lt;/code&gt; is a vector with references to bits 3, 2, and 1 from MSB to LSB.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;ap_ufixed&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;, &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;, AP_RND, AP_WRAP&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; integerPart    &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;2&lt;/span&gt;;
+ap_ufixed&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;, &lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;, AP_RND, AP_WRAP&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; fractionalPart &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;.25&lt;/span&gt;;
+ap_ufixed&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;10&lt;/span&gt;, &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;, AP_RND, AP_WRAP&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; num;
+
+&lt;span style=&#34;color:#75715e&#34;&gt;// On the left side
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;num.range(&lt;span style=&#34;color:#ae81ff&#34;&gt;9&lt;/span&gt;, &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;) &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; integerPart; &lt;span style=&#34;color:#75715e&#34;&gt;// Using &amp;#34;range&amp;#34; method
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;num(&lt;span style=&#34;color:#ae81ff&#34;&gt;4&lt;/span&gt;, &lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;) &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; fractionalPart;    &lt;span style=&#34;color:#75715e&#34;&gt;// Using operator ()
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;
+&lt;span style=&#34;color:#75715e&#34;&gt;// On the right side
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt;(num.range(&lt;span style=&#34;color:#ae81ff&#34;&gt;9&lt;/span&gt;, &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;) &lt;span style=&#34;color:#f92672&#34;&gt;==&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;2&lt;/span&gt;) cout &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Value = &amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; num &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; endl;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;using-ap_fixed-to-enhance-integers&#34;&gt;Using ap_fixed to Enhance Integers&lt;/h2&gt;
+&lt;p&gt;A helpful trick is using an &lt;code&gt;ap_fixed&lt;/code&gt; with equal data and integer widths instead of an &lt;code&gt;ap_int&lt;/code&gt; to create an integer. The &lt;code&gt;ap_fixed&lt;/code&gt; enables controlling the rounding and quantization modes; We don&amp;rsquo;t have such control with ap_int.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;ap_int&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;W&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; iW;
+ap_fixed&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;W, W, AP_RND_CONV, AP_SAT&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; iW2; &lt;span style=&#34;color:#75715e&#34;&gt;// Now we can change modes
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;converting-to-cc-types&#34;&gt;Converting to C/C++ Types&lt;/h2&gt;
+&lt;p&gt;HLS types support implicit conversions for most types, but you can also explicitly convert these data types using the methods &lt;code&gt;to_&amp;lt;type&amp;gt;()&lt;/code&gt;; for example, &lt;code&gt;to_char&lt;/code&gt;, &lt;code&gt;to_int&lt;/code&gt;, &lt;code&gt;to_uint&lt;/code&gt;, &lt;code&gt;to_int64&lt;/code&gt;, &lt;code&gt;to_uint64&lt;/code&gt;, to &lt;code&gt;float&lt;/code&gt;, and &lt;code&gt;to_half&lt;/code&gt;. When converting data types, note that truncation is used instead of the selected rounding mode.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;ap_int&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;9&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; c1(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;0b100000001&amp;#34;&lt;/span&gt;);
+ap_ufixed&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;15&lt;/span&gt;, &lt;span style=&#34;color:#ae81ff&#34;&gt;10&lt;/span&gt;, AP_RND, AP_WRAP&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; c2 &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;7.75&lt;/span&gt;;
+
+&lt;span style=&#34;color:#66d9ef&#34;&gt;char&lt;/span&gt; cc1 &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; c1.to_char()&lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;0&amp;#39;&lt;/span&gt;;
+cout &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;cc1 = &amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; cc1 &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; endl;
+    &lt;span style=&#34;color:#75715e&#34;&gt;// cc1 = 1
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; cc2 &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; c2.to_int();
+cout &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;cc2 = &amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; cc2 &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; endl;
+    &lt;span style=&#34;color:#75715e&#34;&gt;// cc2 = 7
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;console-printing&#34;&gt;Console Printing&lt;/h2&gt;
+&lt;p&gt;Hardware development involves dealing with bit vectors, and representing this data in binary or hexadecimal formats is clearer than using the decimal format. Fortunately, the presented HLS types (&lt;code&gt;ap_int&lt;/code&gt; and &lt;code&gt;ap_fixed&lt;/code&gt;) can be printed as standard types. In addition, the iomanip library helps with formating the printed output, e.g. limiting the number of digits or choosing the adecuate base, among other features. Some of these capabilities are demonstrated in the example below.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span style=&#34;color:#75715e&#34;&gt;#include&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;&amp;lt;iomanip&amp;gt;&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;
+ap_int&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;16&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; aa &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;255&lt;/span&gt;;
+
+cout &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; aa &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; endl; &lt;span style=&#34;color:#75715e&#34;&gt;// base 10 by default
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;    &lt;span style=&#34;color:#75715e&#34;&gt;// 255
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;cout &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; setbase(&lt;span style=&#34;color:#ae81ff&#34;&gt;16&lt;/span&gt;) &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; aa &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; endl; &lt;span style=&#34;color:#75715e&#34;&gt;// Supports Hex, Oct, Dec but not Binary
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;    &lt;span style=&#34;color:#75715e&#34;&gt;// 0xFF
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;cout &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; aa.to_string() &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; endl; &lt;span style=&#34;color:#75715e&#34;&gt;// though, you can use to_string( base ); base is 2 by default
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;    &lt;span style=&#34;color:#75715e&#34;&gt;// 0b11111111
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;printf(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;%s&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;\n&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&lt;/span&gt;, aa.to_string(&lt;span style=&#34;color:#ae81ff&#34;&gt;10&lt;/span&gt;).c_str()); &lt;span style=&#34;color:#75715e&#34;&gt;// Or base 10
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;    &lt;span style=&#34;color:#75715e&#34;&gt;// 255
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</content>
+    </item>
+    
+  </channel>
+</rss>

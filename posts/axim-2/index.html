@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>Enabling Burst Transactions on an AXIM Interface in HLS :: Ramon Heras</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Burst transactions are essential to take full advantage of the AXIM interface. After performing many tests and reading the documentation several times, I must say that there is not a well-defined behavior of Vitis HLS. In this post, I summarize my thoughts and experimentation results on optimizing burst transactions. You can find an introductory blog to this topic here.
+Unfortunately, the only way to ensure bursting is by diving into the wave viewer to check for it yourself." />
+<meta name="keywords" content="" />
+<meta name="robots" content="noodp" />
+<link rel="canonical" href="https://ramonheras.com/posts/axim-2/" />
+
+
+
+
+<link rel="stylesheet" href="https://ramonheras.com/assets/style.css">
+
+  <link rel="stylesheet" href="https://ramonheras.com/assets/blue.css">
+
+
+
+
+
+
+<link rel="apple-touch-icon" href="https://ramonheras.com/img/apple-touch-icon-192x192.png">
+
+  <link rel="shortcut icon" href="https://ramonheras.com/img/favicon/blue.png">
+
+
+
+<meta name="twitter:card" content="summary" />
+
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Enabling Burst Transactions on an AXIM Interface in HLS">
+<meta property="og:description" content="Burst transactions are essential to take full advantage of the AXIM interface. After performing many tests and reading the documentation several times, I must say that there is not a well-defined behavior of Vitis HLS. In this post, I summarize my thoughts and experimentation results on optimizing burst transactions. You can find an introductory blog to this topic here.
+Unfortunately, the only way to ensure bursting is by diving into the wave viewer to check for it yourself." />
+<meta property="og:url" content="https://ramonheras.com/posts/axim-2/" />
+<meta property="og:site_name" content="Ramon Heras" />
+
+  
+    <meta property="og:image" content="https://ramonheras.com/img/favicon/blue.png">
+  
+
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+  <meta property="article:section" content="Xilinx High-Level Synthesis" />
+
+
+  <meta property="article:published_time" content="2021-06-01 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+<script>
+    MathJax = {
+        tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']],
+            processEscapes: true,
+            processEnvironments: true
+        },
+        options: {
+            skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+        }
+    };
+
+    window.addEventListener('load', (event) => {
+        document.querySelectorAll("mjx-container").forEach(function (x) {
+            x.parentElement.classList += 'has-jax'
+        })
+    });
+
+</script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script type="text/javascript" id="MathJax-script" async
+    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+</head>
+<body class="blue">
+
+
+<div class="container center headings--one-size">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    Ramon Heras
+  </div>
+</a>
+
+    </div>
+    
+      <div class="menu-trigger">menu</div>
+    
+  </div>
+  
+    <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+      
+    
+
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="https://ramonheras.com/posts/axim-2/">Enabling Burst Transactions on an AXIM Interface in HLS</a></h1>
+  <div class="post-meta">
+    
+      <span class="post-date">
+        2021-06-01 
+      </span>
+    
+    
+    <span class="post-author">:: Ramon Heras</span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="https://ramonheras.com/tags/xilinx-hls/">Xilinx-HLS</a>&nbsp;
+    
+    #<a href="https://ramonheras.com/tags/axi-master/">AXI-Master</a>&nbsp;
+    
+    #<a href="https://ramonheras.com/tags/c&#43;&#43;/">C&#43;&#43;</a>&nbsp;
+    
+    #<a href="https://ramonheras.com/tags/burst-transactions/">Burst-Transactions</a>&nbsp;
+    
+  </span>
+  
+
+  
+
+  
+
+  <div class="post-content"><div>
+        <p>Burst transactions are essential to take full advantage of the AXIM interface. After performing many tests and reading the documentation several times, I must say that there is not a well-defined behavior of Vitis HLS. In this post, I summarize my thoughts and experimentation results on optimizing burst transactions. You can find an introductory blog to this topic here.</p>
+<p>Unfortunately, the only way to ensure bursting is by diving into the wave viewer to check for it yourself. In Vitis 2020.2, there is a section specifically to report burst-related issues, the *AXI_M Burst Information&rdquo; section located in the &ldquo;Synthesis Summary.&rdquo; In older versions, you can still find this information by skimming through the synthesis warnings or checking the synthesis log on the console. Unfortunately, this report is not accurate enough and tends to throw many false messages. Still, I follow the tool&rsquo;s guidance, hoping that someday it&rsquo;ll be more accurate or at least consistent with the documentation.</p>
+<h2 id="access-pattern">Access Pattern<a href="#access-pattern" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h2>
+<p>The access pattern is the most critical aspect to make the burst optimization succeed. The access pattern must be sequential and incremental. The simplest way to ensure such an access pattern is by using an array as a top function parameter that is accessed from a single loop (to avoid overlapping).</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">for</span>(<span style="color:#66d9ef">int</span> i<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>; i<span style="color:#f92672">&lt;</span>ARRAY_SIZE; <span style="color:#f92672">++</span>i)
+    outputArray[i] <span style="color:#f92672">=</span> inputArray[i]<span style="color:#f92672">+</span>val;
+</code></pre></div><h2 id="top-parameter-alignment">Top Parameter Alignment<a href="#top-parameter-alignment" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h2>
+<p>When you tell HLS to use a particular interface (AXIM or AXI Lite), HLS just adds an IP core called an adapter that defines the bus functional model and takes care of all the interfacing logic (See pages 233-236). The alignment of the parameter that you put on the top function concerns the interfacing between the HLS core and the adapter. Types aligned to a smaller value than the interface width lead to a bottleneck. This is because the AXIM adapter is capable of reading up to 4 bytes per clock cycle (for a 32-bit wide interface), but the HLS core only reads from the adapter the number of bytes to which the top parameter is aligned, per clock cycle. For instance, if the top parameter is a char, access is limited to only a single byte per clock.</p>
+<h2 id="quick-note-on-structs">Quick Note on Structs<a href="#quick-note-on-structs" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h2>
+<p>As previously mentioned, when using structs, be careful with alignment since it limits the access in HLS. In the example below, the struct alignment is 1 byte, which limits access to a single byte of data per clock cycle. You might be tempted to use pragmas to solve this issue, perhaps partitioning the inner array  or aggregating the struct, but none of those solutions will work. Partitioning the inner array will not work because the only place to put this pragma is in the struct constructor, and since it is an interface, the pragmas inside of it are ignored. And aggregating the struct will not work neither because using the aggregate pragma on an AXI master interface is not allowed . In contrast, if you were after an AXI stream interface, the aggregation would be automatic. The correct solution is much simpler. Simply align the struct properly using the C++ keyword alignas to read the struct entirely in a single clock cycle.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">//Default alignment 1 byte
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Sample_t</span>{
+    <span style="color:#66d9ef">char</span> data[<span style="color:#ae81ff">4</span>];
+};
+
+<span style="color:#75715e">//Proper alignment 4 bytes
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">alignas</span>(<span style="color:#ae81ff">4</span>) Sample_t{
+    <span style="color:#66d9ef">char</span> data[<span style="color:#ae81ff">4</span>];
+};
+</code></pre></div><h2 id="memcpy">Memcpy?<a href="#memcpy" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">SimpleCore2b</span>(<span style="color:#66d9ef">int</span> inputArray[ARRAY_SIZE], <span style="color:#66d9ef">int</span> outputArray[ARRAY_SIZE], ap_int<span style="color:#f92672">&lt;</span><span style="color:#ae81ff">8</span><span style="color:#f92672">&gt;</span> val){
+<span style="color:#75715e">#pragma HLS interface s_axilite port=return bundle=CONTROL
+</span><span style="color:#75715e">#pragma HLS interface s_axilite port=val bundle=CONTROL
+</span><span style="color:#75715e">#pragma HLS interface m_axi port=inputArray offset=slave bundle=GMEM0
+</span><span style="color:#75715e">#pragma HLS interface m_axi port=outputArray offset=slave bundle=GMEM0
+</span><span style="color:#75715e"></span>
+
+<span style="color:#66d9ef">int</span> localBuffer[ARRAY_SIZE];
+memcpy(localBuffer, (<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span><span style="color:#f92672">*</span>)inputArray, <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">int</span>)<span style="color:#f92672">*</span>ARRAY_SIZE);
+
+
+<span style="color:#66d9ef">for</span>(<span style="color:#66d9ef">int</span> i<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>; i<span style="color:#f92672">&lt;</span>ARRAY_SIZE; <span style="color:#f92672">++</span>i)
+    outputArray[i] <span style="color:#f92672">=</span> localBuffer[i]<span style="color:#f92672">+</span>val;
+
+}
+</code></pre></div><p>In many examples, a local buffer is used along with memcpy to copy the data from the parameter (the interface) to the local buffer; see the code above. This approach is necessary when the burst optimization is not being applied. Sometimes, HLS cannot guess burst length due to a bad access pattern or other reasons. Using a local buffer effectively forces burst transactions, though this strategy has two main drawbacks. First, additional memory resources are needed to allocate the local buffer [either SLICEMs (to create distributed RAM), BRAMs, or URAMs]. Second, the burst length is of a fixed size, filling the entire buffer regardless of whether the entire buffer is needed.</p>
+<h2 id="volatile">Volatile?<a href="#volatile" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp">    <span style="color:#66d9ef">void</span> fooA(<span style="color:#66d9ef">volatile</span> <span style="color:#66d9ef">int</span> inputArray[ARRAY_SIZE])
+    <span style="color:#75715e">// Or
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">void</span> fooB(<span style="color:#66d9ef">int</span> inputArray[ARRAY_SIZE])
+</code></pre></div><p>Xilinx documentation is not very clear about whether or not to use the volatile qualifier on the top parameter. On pages 159 and 160, they state that volatile, following the standard C/C++ behavior, instructs the HLS tool not to optimize the variable to which it is applied. This may include no burst access, port widening, or dead code elimination.</p>
+<p>But then, on pages <a href="https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_2/ug1399-vitis-hls.pdf#page=169">169-171</a> and <a href="https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_2/ug1399-vitis-hls.pdf#page=228">228-238</a>, Xilinx provides many examples using the volatile and explains that volatile is used on ports (top function parameters) that are read from or written to several times during the code execution, especially on pointers. This same section refers to &ldquo;Optimizing Burst Transfers&rdquo; (<a href="https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_2/ug1399-vitis-hls.pdf#page=315">page 315</a>), where there is yet another example without the volatile keyword. Furthermore, using volatile throws the burst failure 5, <a href="https://www.xilinx.com/html_docs/xilinx2020_2/hls-guidance/214-227.html">error [214-227]</a>. One more caveat is that you cannot use an arbitrary precision (AP) type (such as ap_int or ap_fixed) along with the volatile qualifier since AP types do not support the volatile qualifier (and the code would not compile), see <a href="https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_2/ug1399-vitis-hls.pdf#page=160">page 160</a>.</p>
+<p>Well, that is the theory; in practice, using volatile does not prevent bursting every time. Generally, the impact on resource utilization is limited, but it can have a considerable effect on everything from resources to performance depending on the case. The only way to make sure that everything is working properly is by checking the wave window. I personally tend to follow the tool guidance and generally would not use the volatile qualifier in this scenario. Another caution that I take is not reading/writing the same element several times but instead, copying it to/from another variable before. That is not strictly necessary, but it is good practice, especially when writing/reading to variables instead of arrays. The code snippets below reflect what I&rsquo;ve seen during code reviews.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// Avoid writing to an output twice 
+</span><span style="color:#75715e"></span>out[i] <span style="color:#f92672">=</span> <span style="color:#ae81ff">5</span>;
+<span style="color:#66d9ef">if</span>(something())
+    out[i] <span style="color:#f92672">=</span> var; <span style="color:#75715e">//second write
+</span><span style="color:#75715e"></span>
+
+<span style="color:#66d9ef">if</span>(something()) out[i] <span style="color:#f92672">=</span> var; <span style="color:#75715e">//Writing once
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">else</span>            out[i] <span style="color:#f92672">=</span> <span style="color:#ae81ff">5</span>; 
+
+
+<span style="color:#75715e">// Avoid reading from an input twice 
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">if</span>(something(in[i])) var <span style="color:#f92672">=</span> in[i]; <span style="color:#75715e">//Second read
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">else</span>                 var <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+
+<span style="color:#66d9ef">auto</span> aux <span style="color:#f92672">=</span> in[i]; <span style="color:#75715e">//Reading once
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">if</span>(something(aux))  var <span style="color:#f92672">=</span> aux; 
+<span style="color:#66d9ef">else</span>                var <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+</code></pre></div><h2 id="just-checked-the-wave-viewer-and-the-burst-length-is-not-fully-optimal">Just Checked the Wave Viewer, and the Burst Length Is Not Fully Optimal&hellip;<a href="#just-checked-the-wave-viewer-and-the-burst-length-is-not-fully-optimal" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h2>
+<p>After making sure that the access pattern is perfect or even using memcpy to force it, you might find that the burst length is shorter than the optimal length. For instance, a for loop might be split into several bursts. This scenario is quite common because  Vitis HLS limits the maximum burst length by default to just 16 beats. To change this, increment the burst read/write size to the desired value (256 is the maximum for a 32-bit wide interface). You can do this in either of the following ways.</p>
+<ol>
+<li>
+<p>Add the options max_read_burst_length=256 or max_write_burst_length=256 to the interface pragma</p>
+</li>
+<li>
+<p>Modify the default settings at <code>solution settings</code> &gt; <code>general / configuration settings</code> &gt; <code>config interface</code></p>
+</li>
+</ol>
+<p>When setting up this value, there are two limitations:</p>
+<ol>
+<li>
+<p>The AW_LEN signal, which specifies the burst length (number of beats per transaction), is only 8 bits wide; therefore, the maximum value is 255. In AXI, the minimum length is one beat, so the transaction length is the AW_LENGTH value plus one. This way, a value of AW_LENGTH of 0 signifies a single beat transaction (the minimum). Therefore, the maximum burst size is really 256.</p>
+</li>
+<li>
+<p>The limit for a burst is 4 KB per transaction; this is an AXI standard limitation. Therefore the maximum burst size depends on the channel TDATA width as well.</p>
+</li>
+</ol>
+<p>The following formula agglutinates the two limitations described above:</p>
+<p>$$
+maxReadBurstLength = min(4096/axiChannelByteWidth,\ 256)
+$$</p>
+<h2 id="optimizing-a-bit-more">Optimizing A Bit More<a href="#optimizing-a-bit-more" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h2>
+<p>By adding the latency option to the interface pragma, you can specify the expected latency. That might be a little confusing at first glance since there are two latencies involved with an AXIM burst.</p>
+<ul>
+<li>
+<p>Read latency: the number of clock cycles between requesting a read and receiving the first datum</p>
+</li>
+<li>
+<p>Write latency: the amount of time between the first write request and receiving the write acknowledgment</p>
+</li>
+</ul>
+<p>Specifying this latency option allows your IP to request access to the channel before it is needed. The best way to optimize your system is by monitoring all the transactions and synchronizing the different modules to share the memory bandwidth efficiently, rather than playing with the latency option alone. Note that if you choose a value too high, the IP core might have access to the channel before actually needing it, therefore not using it and wasting bandwidth.</p>
+<p>Similarly, if the latency value is too low, your core might stall waiting for access. As a good starting point, I would leave the default value as is. On <a href="https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_2/ug1399-vitis-hls.pdf#page=311">page 311</a>, there is a more detailed explanation of the implied latencies.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp">    <span style="color:#75715e">#pragma HLS interface m_axi port=outputArray offset=slave bundle=GMEM0 latency=&lt;value&gt;
+</span></code></pre></div><h2 id="last-notes-when-using-axim-powered-ip-cores">Last Notes When Using AXIM Powered IP Cores<a href="#last-notes-when-using-axim-powered-ip-cores" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h2>
+<p>In addition to the practices discussed in the previous section, another precaution must be taken when inferring burst transactions. A read or write burst must not cross the 4 KB boundaries; this rule is an AXI standard limitation. To verify this, the following statement must be true:</p>
+<p>$$
+\displaylines{(StartingAddr\ \%\ 4096)+BurstLength*BurstSize&lt;4K=4096\\<br>
+BurstLength→Number\ of\ transfers/beats\\<br>
+BurstSize→Number\ of\ bytes\ per\ transfer/beat}
+$$</p>
+<p>For the first example (100 beats of 4 bytes) and given an starting address of 0x7871D0, the statement is as follows:</p>
+<p>$$
+\displaylines{(7893456\ \%\ 4096)+100*4&lt;4K=4096\rightarrow 464+400&lt;4K\rightarrow864&lt;4096 \rightarrow OK!}
+$$</p>
+<p>The easiest way to avoid manually checking the above all the time is to use buffers already aligned to 4 KB; this method gives you the benefit of pushing the burst size to the 4 KB limit. See the examples below:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// Instead of This
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> buff[N];
+
+<span style="color:#75715e">// This (C++11)
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">alignas</span>(<span style="color:#ae81ff">4096</span>) <span style="color:#66d9ef">int</span> p[N];
+
+<span style="color:#75715e">// This (C11 User space)
+</span><span style="color:#75715e"></span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;stdlib.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">int</span><span style="color:#f92672">*</span> buff <span style="color:#f92672">=</span> (<span style="color:#66d9ef">int</span><span style="color:#f92672">*</span>)aligned_alloc(<span style="color:#ae81ff">4096</span>, <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">int</span>)<span style="color:#f92672">*</span>N);
+
+<span style="color:#75715e">// This (C Kernel space)
+</span><span style="color:#75715e"></span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;linux/slab.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">kmem_cache_t</span>
+    <span style="color:#f92672">*</span>buff_cache <span style="color:#f92672">=</span> (kmem_cache_t<span style="color:#f92672">*</span>)kmem_cache_create(
+        <span style="color:#e6db74">&#34;buff_4k_cache&#34;</span>,
+        <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">int</span>)<span style="color:#f92672">*</span>N,
+        <span style="color:#ae81ff">1</span><span style="color:#f92672">&lt;&lt;</span><span style="color:#ae81ff">12</span>, <span style="color:#75715e">/* 4K alignment */</span>
+        SLAB_HWCACHE_ALIGN); <span style="color:#75715e">// Add | SLAB_POISON | SLAB_RED_ZONE for debugging
+</span></code></pre></div>
+      </div></div>
+
+  
+  
+<div class="pagination">
+    <div class="pagination__title">
+        <span class="pagination__title-h">Read other posts</span>
+        <hr />
+    </div>
+    <div class="pagination__buttons">
+        
+        
+        <span class="button next">
+            <a href="https://ramonheras.com/posts/axim-1/">
+                <span class="button__text">The AXI Master interface in HLS (The Basics)</span>
+                <span class="button__icon">→</span>
+            </a>
+        </span>
+        
+    </div>
+</div>
+
+  
+
+  
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2021 Powered by <a href="http://gohugo.io">Hugo</a></span>
+    
+        <span>:: Theme made by <a href="https://twitter.com/panr">panr</a></span>
+      </div>
+  </div>
+</footer>
+
+<script src="https://ramonheras.com/assets/main.js"></script>
+<script src="https://ramonheras.com/assets/prism.js"></script>
+
+
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>

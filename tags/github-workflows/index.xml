@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>GitHub-Workflows on Ramon Heras</title>
+    <link>https://ramonheras.com/tags/github-workflows/</link>
+    <description>Recent content in GitHub-Workflows on Ramon Heras</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 01 Mar 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://ramonheras.com/tags/github-workflows/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Automate HLS IP Core Deployment</title>
+      <link>https://ramonheras.com/posts/devops-2/</link>
+      <pubDate>Mon, 01 Mar 2021 00:00:00 +0000</pubDate>
+      
+      <guid>https://ramonheras.com/posts/devops-2/</guid>
+      <description>In the last post, we introduced our new CI system and its remarkable features, such as automated testing and code coverage report generation. However, that was just the beginning step in our journey to automate most processes to save time and focus on what matters, providing better-quality code to our customers. In this second stage, we have automated the deployment process. In our case, this boils down to pushing repository changes to our customers&amp;rsquo; git server.</description>
+      <content>&lt;p&gt;In the last post, we introduced our new CI system and its remarkable features, such as automated testing and code coverage report generation. However, that was just the beginning step in our journey to automate most processes to save time and focus on what matters, providing better-quality code to our customers. In this second stage, we have automated the deployment process. In our case, this boils down to pushing repository changes to our customers&amp;rsquo; git server.&lt;/p&gt;
+&lt;p&gt;We understand that each organization uses unique processes that do not necessarily match ours; therefore, the main goal was to isolate our customers&amp;rsquo; processes from ours. To accomplish this task, we used two separated repos: one in our git server provider, and another hosted by our customer. In our repo, we keep track of all source code and configuration files. During the deployment, all the outputs are generated, from the IP core to the HTML reports and documents. Next, all these outputs are moved to a &amp;ldquo;clean repository.&amp;rdquo; Finally, the clean repository is pushed to the customer&amp;rsquo;s repository using a provided SSH key.&lt;/p&gt;
+&lt;p&gt;The customer owns a repository in which there is no need to run any script to read reports and documentation or import the IP core to the Vivado IP catalog. Depending on the project (for most projects), we also include the source code. Most projects involve designing custom libraries; hence, it does not make sense to export the IP core alone. Instead, we include the underlying library used to build the IP core, and, if it is requested, all related code such as external included files and tests.&lt;/p&gt;
+&lt;p&gt;
+  &lt;figure class=&#34;center&#34; &gt;
+    &lt;img src=&#34;https://ramonheras.com/images/DevOps-2/pipeline.jpg&#34;  alt=&#34;Deployment Pipeline&#34;   /&gt;
+    
+  &lt;/figure&gt;
+
+
+&lt;strong&gt;Figure 1&lt;/strong&gt; Deployment Pipeline&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;📝 &lt;em&gt;This post was initially released on the HLS Works Blog in 2020. The post was migrated to this web after the HLS Works closed in Sep 2021. The entire pipeline is planned to be open-sourced in the the near future.&lt;/em&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+</content>
+    </item>
+    
+    <item>
+      <title>Automate test execution HLS</title>
+      <link>https://ramonheras.com/posts/devops-1/</link>
+      <pubDate>Mon, 01 Feb 2021 00:00:00 +0000</pubDate>
+      
+      <guid>https://ramonheras.com/posts/devops-1/</guid>
+      <description>Nowadays, continuous integration (CI) is a must, and including CI in our workflow has been a game-changer. We have automated many processes to save an enormous amount of time that can be spent on improving quality and delivering a better product to our customers.
+To fully integrate dev-ops into our processes, we have automated test execution and code coverage report generation. Tests in HLS differ significantly from typical software development. In software development, a typical CI workflow compiles and executes tests in several different environments with distinct operating systems and configurations.</description>
+      <content>&lt;p&gt;Nowadays, continuous integration (CI) is a must, and including CI in our workflow has been a game-changer. We have automated many processes to save an enormous amount of time that can be spent on improving quality and delivering a better product to our customers.&lt;/p&gt;
+&lt;p&gt;To fully integrate dev-ops into our processes, we have automated test execution and code coverage report generation. Tests in HLS differ significantly from typical software development. In software development, a typical CI workflow compiles and executes tests in several different environments with distinct operating systems and configurations. In HLS, executing the software is just the beginning of the pipeline C simulation (C SIM). A software CI workflow lacks synthesis, co-simulation, and IP exportation. Checking all of these can be tedious and time-consuming, but with the help of automation and CI tools, this process becomes much easier!&lt;/p&gt;
+&lt;p&gt;There are many challenges to obtaining this workflow, from building in-house tools to hosting the entire CI system on our own servers. This is due to execution time constraints and the large amount of memory taken by Xilinx tools.
+What Have We Automated?&lt;/p&gt;
+&lt;p&gt;We execute a pipeline of operations on each commit to ensure that our code is not broken at any stage:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;The server runs the tests as regular software (C Simulation or csim for short). We use this step to find early errors as soon as possible since this is the fastest part of the pipeline.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;The server re-runs the tests but enabling code coverage. With code coverage, we check that each line of code has been executed. It does not ensure the quality of the tests, but it is an essential check.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Finally, the server executes unit and integration tests running C synthesis, co-simulation, and IP exportation for each test.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;If the test pipeline completes successfully, the deployment pipeline is triggered.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Step 3 is the most time-consuming and complex. It can be split into three sub-processes:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;C Synthesis is executed to verify synthesizability. Identifying non-synthesizable code as soon as possible is crucial to don&amp;rsquo;t waste time later. Next, synthesizable code is translated to RTL, leaving the remaining code as C/C++. The RTL code can be either VHDL or Verilog.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;In co-simulation, C/C++ code runs as normal software, whereas the RTL hardware description is simulated. Vitis HLS inserts several interfaces to enable data transfers between the software part and the RTL simulation. This step is the slowest due to the RTL simulation.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Ip exportation does not simply package the core and the drivers. It also runs extra checking in Vivado to verify functionality, i.e., place and route, among other tests. Those tests culminate in a final report on resource utilization, throughput, max clock frequency, etc. This report is more accurate than the one generated by C Synthesis.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Detecting any breaks in the pipeline at commit granularity has saved our customers a lot of time and money. Figure 1 illustrates the described flow.
+Figure 1 Test pipeline&lt;/p&gt;
+&lt;p&gt;
+  &lt;figure class=&#34;center&#34; &gt;
+    &lt;img src=&#34;https://ramonheras.com/images/DevOps-1/pipeline.jpg&#34;  alt=&#34;Test pipeline&#34;   /&gt;
+    
+  &lt;/figure&gt;
+
+
+&lt;strong&gt;Figure 1&lt;/strong&gt; Test pipeline&lt;/p&gt;
+&lt;p&gt;Our automated system executes the pipeline described above (C simulation, synthesis, co-simulation, and IP exportation) in various Vitis HLS versions (2020.1 and 2020.2) and operating systems (Windows 10 and Ubuntu 20.04|18.4), running all tasks in parallel to improve execution times.&lt;/p&gt;
+&lt;h2 id=&#34;this-is-only-the-beginning&#34;&gt;This Is Only the Beginning.&lt;/h2&gt;
+&lt;p&gt;The HLS Works operations roadmap includes much more automation, specifically in the field of deployment operations. From documentation generation and deployment to code deployment, all these topics [KA1] will be covered in a later post.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;📝 &lt;em&gt;This post was initially released on the HLS Works Blog in 2020. The post was migrated to this web after the HLS Works closed in Sep 2021. The entire pipeline is planned to be open-sourced in the the near future.&lt;/em&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+</content>
+    </item>
+    
+  </channel>
+</rss>

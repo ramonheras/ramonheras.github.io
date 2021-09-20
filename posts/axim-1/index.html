@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>The AXI Master interface in HLS (The Basics) :: Ramon Heras</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="The AXI4 master is a powerfull interface that supports many features, but probably the most remarkable feature is support for burst transactions (Covered in detail in this post). An AXI Master (AXIM) interface is commonly used to access the DDR memory, though it can also be used to access other cores, such as BRAM or URAM. On the other side, an AXIM is complex and requires a lot of FPGA real estate." />
+<meta name="keywords" content="" />
+<meta name="robots" content="noodp" />
+<link rel="canonical" href="https://ramonheras.com/posts/axim-1/" />
+
+
+
+
+<link rel="stylesheet" href="https://ramonheras.com/assets/style.css">
+
+  <link rel="stylesheet" href="https://ramonheras.com/assets/blue.css">
+
+
+
+
+
+
+<link rel="apple-touch-icon" href="https://ramonheras.com/img/apple-touch-icon-192x192.png">
+
+  <link rel="shortcut icon" href="https://ramonheras.com/img/favicon/blue.png">
+
+
+
+<meta name="twitter:card" content="summary" />
+
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="The AXI Master interface in HLS (The Basics)">
+<meta property="og:description" content="The AXI4 master is a powerfull interface that supports many features, but probably the most remarkable feature is support for burst transactions (Covered in detail in this post). An AXI Master (AXIM) interface is commonly used to access the DDR memory, though it can also be used to access other cores, such as BRAM or URAM. On the other side, an AXIM is complex and requires a lot of FPGA real estate." />
+<meta property="og:url" content="https://ramonheras.com/posts/axim-1/" />
+<meta property="og:site_name" content="Ramon Heras" />
+
+  
+    <meta property="og:image" content="https://ramonheras.com/img/favicon/blue.png">
+  
+
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+  <meta property="article:section" content="Xilinx High-Level Synthesis" />
+
+
+  <meta property="article:published_time" content="2021-05-01 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+<script>
+    MathJax = {
+        tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']],
+            processEscapes: true,
+            processEnvironments: true
+        },
+        options: {
+            skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+        }
+    };
+
+    window.addEventListener('load', (event) => {
+        document.querySelectorAll("mjx-container").forEach(function (x) {
+            x.parentElement.classList += 'has-jax'
+        })
+    });
+
+</script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script type="text/javascript" id="MathJax-script" async
+    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+</head>
+<body class="blue">
+
+
+<div class="container center headings--one-size">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    Ramon Heras
+  </div>
+</a>
+
+    </div>
+    
+      <div class="menu-trigger">menu</div>
+    
+  </div>
+  
+    <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+      
+    
+
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="https://ramonheras.com/posts/axim-1/">The AXI Master interface in HLS (The Basics)</a></h1>
+  <div class="post-meta">
+    
+      <span class="post-date">
+        2021-05-01 
+      </span>
+    
+    
+    <span class="post-author">:: Ramon Heras</span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="https://ramonheras.com/tags/xilinx-hls/">Xilinx-HLS</a>&nbsp;
+    
+    #<a href="https://ramonheras.com/tags/axi-master/">AXI-Master</a>&nbsp;
+    
+    #<a href="https://ramonheras.com/tags/c&#43;&#43;/">C&#43;&#43;</a>&nbsp;
+    
+    #<a href="https://ramonheras.com/tags/basics/">Basics</a>&nbsp;
+    
+  </span>
+  
+
+  
+
+  
+
+  <div class="post-content"><div>
+        <p>The AXI4 master is a powerfull interface that supports many features, but probably the most remarkable feature is support for burst transactions (Covered in detail in this post). An AXI Master (AXIM) interface is commonly used to access the DDR memory, though it can also be used to access other cores, such as BRAM or URAM. On the other side, an AXIM is complex and requires a lot of FPGA real estate. The operating frequency is also significantly reduced in comparison to different interfaces, such as the AXI stream.</p>
+<p>This post addresses the basics of designing an AXIM-powered IP core. It is written with the assumption that the reader has some knowledge regarding this interface. If you do not, I recommend watching <a href="https://www.youtube.com/watch?v=1zw1HBsjDH8&amp;list=PLaSdxhHqai2_7WZIhCszu5PLSbZURmibN">these videos</a> or reviewing the <a href="https://developer.arm.com/documentation/ihi0022/e/AMBA-AXI3-and-AXI4-Protocol-Specification">AMBA AXI specification documentation</a>. Throughout this post, I will be referring to the HLS documentation quite often, in particular to <a href="https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_2/ug1399-vitis-hls.pdf">UG1399-v2020.2</a>. As I explain later on, some concepts in the documentation are not clear enough, in my opinion.</p>
+<p>Let&rsquo;s start with some code. The code below is the simplest example using AXIM that I can think of. It takes an input array and adds the value of val to each element. Both val and the starting address from which the AXI master interface will read the array are set through an AXI-Lite slave interface.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">SimpleCore</span>( <span style="color:#66d9ef">int</span> inputArray[ARRAY_SIZE], <span style="color:#66d9ef">int</span> outputArray[ARRAY_SIZE], ap_int<span style="color:#f92672">&lt;</span><span style="color:#ae81ff">8</span><span style="color:#f92672">&gt;</span> val){
+	<span style="color:#75715e">#pragma HLS interface s_axilite port=return bundle=CONTROL
+</span><span style="color:#75715e"></span>	<span style="color:#75715e">#pragma HLS interface s_axilite port=val bundle=CONTROL
+</span><span style="color:#75715e"></span>	<span style="color:#75715e">#pragma HLS interface m_axi port=inputArray offset=slave bundle=GMEM0
+</span><span style="color:#75715e"></span>	<span style="color:#75715e">#pragma HLS interface m_axi port=outputArray offset=slave bundle=GMEM0
+</span><span style="color:#75715e"></span>
+	<span style="color:#66d9ef">for</span>(<span style="color:#66d9ef">int</span> i<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>; i<span style="color:#f92672">&lt;</span>ARRAY_SIZE; <span style="color:#f92672">++</span>i)
+		outputArray[i] <span style="color:#f92672">=</span> inputArray[i]<span style="color:#f92672">+</span>val;
+ };
+</code></pre></div><h2 id="offsetslave">Offset=slave?<a href="#offsetslave" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h2>
+<p>The AXIM is a master interface, so it is responsible for reading the data. The starting address from which to start reading is known as the slave address or offset. With the offset parameter, we specify how to tell our IP core the address. I have set it to slave, which causes the HLS tool to create a slave register to set the slave address. This register can either be read or written by your system&rsquo;s processor through an AXI-Lite slave interface that is also added to your IP core.</p>
+<p>There are other modes for this setting, such as &ldquo;fixed&rdquo; or &ldquo;off,&rdquo; but these modes are rarely used. The &ldquo;direct&rdquo; mode tells the HLS tool to add an extra input to the core instead of using an AXI Lite register. Finally, the &ldquo;off&rdquo; option does not create any offset port nor an AXI-Lite register. In this last case, the starting address is configured in the IP Integrator window (&ldquo;Base address of target slave,&rdquo; <a href="https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_2/ug1399-vitis-hls.pdf#page=241">page 241</a>) when instantiating the core in the block design in Vivado. Note that this last approach does not allow you to change the address at runtime.</p>
+<h2 id="int-or-intsize"><code>int*</code> or <code>int[SIZE]</code>?<a href="#int-or-intsize" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h2>
+<p>In C/C++, there is no difference between both options. However, I prefer the second option because it tells HLS the burst depth so that I do not have to specify it manually with the pragma option depth, this way you keep the pragma line cleaner. The tool might indicate that the depth is still 0 but the simulation is not going to fail, as it would do if you were not specified the size anywhere.</p>
+<p>The depth parameter indicates the maximum burst length and is used in co-simulation. HLS uses the depth parameter to calculate the size of the FIFO that interfaces the C++ test bench with the RTL core under test. A FIFO is necessary for each streaming interface, including AXIM and AXI-Stream. If the depth parameter is not specified, the cosim is likely to fail since HLS usually cannot deduce the burst length from the code.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"> <span style="color:#75715e">#pragma HLS interface m_axi port=outputArray depth=100 offset=slave bundle=GMEM0
+</span></code></pre></div><h2 id="top-parameter">Top Parameter<a href="#top-parameter" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h2>
+<p>The top function parameter will most likely be an array or pointer (which, in practice, are the same), but of what type? As with other interfaces, you can either use (1) a C/C++ type (int, char, etc.…), (2) an arbitrary type (ap_int, ap_uint. Check out the post &ldquo;Why use arbitrary types&rdquo;) or (3) a custom struct. Simplicity is best, especially with an AXI Master interface, so I tend to use an int32 because it is of the same size as the interface, 32 bits. Sometimes a struct might be more suitable, but it can be tricky due to alignment concerns—learn more about alignment in the Enabling Burst Transactions post.</p>
+<h2 id="last-notes-when-using-axim-powered-ip-cores">Last Notes When Using AXIM Powered IP Cores<a href="#last-notes-when-using-axim-powered-ip-cores" class="hanchor" ariaLabel="Anchor">&#8983;</a> </h2>
+<p>One important precaution must be taken when setting the slave address. Make sure that this address is aligned with the interface width (normally 4 bytes). To check this, you must make sure that the starting address value modulo the interface byte width is 0 . Or, since the interface width is limited to a power of two by the standard, the first least significant bits must be 0.</p>
+<p>$$
+\displaylines{StartingAddr \% AximTdataByteWidth== 0 == StartingAddr[(AximDataByteWidth-1):0 ]\\<br>
+[a:b]→range\ of\ bits\ from\ \mathbf{a}\ to\ \mathbf{b}\ boundaries\ included.\ Ej\ [2:0]→[b_2,b_1,b_0]}
+$$</p>
+<p>When dealing with burst transactions, there is another critical aspect to remember regarding burst lengths. Learn more about this issue by reading the article <strong>Enabling Burst Transactions</strong>.</p>
+
+      </div></div>
+
+  
+  
+<div class="pagination">
+    <div class="pagination__title">
+        <span class="pagination__title-h">Read other posts</span>
+        <hr />
+    </div>
+    <div class="pagination__buttons">
+        
+        <span class="button previous">
+            <a href="https://ramonheras.com/posts/axim-2/">
+                <span class="button__icon">←</span>
+                <span class="button__text">Enabling Burst Transactions on an AXIM Interface in HLS</span>
+            </a>
+        </span>
+        
+        
+        <span class="button next">
+            <a href="https://ramonheras.com/posts/hls-types/">
+                <span class="button__text">Why use HLS data types</span>
+                <span class="button__icon">→</span>
+            </a>
+        </span>
+        
+    </div>
+</div>
+
+  
+
+  
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2021 Powered by <a href="http://gohugo.io">Hugo</a></span>
+    
+        <span>:: Theme made by <a href="https://twitter.com/panr">panr</a></span>
+      </div>
+  </div>
+</footer>
+
+<script src="https://ramonheras.com/assets/main.js"></script>
+<script src="https://ramonheras.com/assets/prism.js"></script>
+
+
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>

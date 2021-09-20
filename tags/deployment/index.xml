@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Deployment on Ramon Heras</title>
+    <link>https://ramonheras.com/tags/deployment/</link>
+    <description>Recent content in Deployment on Ramon Heras</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 01 Mar 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://ramonheras.com/tags/deployment/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Automate HLS IP Core Deployment</title>
+      <link>https://ramonheras.com/posts/devops-2/</link>
+      <pubDate>Mon, 01 Mar 2021 00:00:00 +0000</pubDate>
+      
+      <guid>https://ramonheras.com/posts/devops-2/</guid>
+      <description>In the last post, we introduced our new CI system and its remarkable features, such as automated testing and code coverage report generation. However, that was just the beginning step in our journey to automate most processes to save time and focus on what matters, providing better-quality code to our customers. In this second stage, we have automated the deployment process. In our case, this boils down to pushing repository changes to our customers&amp;rsquo; git server.</description>
+      <content>&lt;p&gt;In the last post, we introduced our new CI system and its remarkable features, such as automated testing and code coverage report generation. However, that was just the beginning step in our journey to automate most processes to save time and focus on what matters, providing better-quality code to our customers. In this second stage, we have automated the deployment process. In our case, this boils down to pushing repository changes to our customers&amp;rsquo; git server.&lt;/p&gt;
+&lt;p&gt;We understand that each organization uses unique processes that do not necessarily match ours; therefore, the main goal was to isolate our customers&amp;rsquo; processes from ours. To accomplish this task, we used two separated repos: one in our git server provider, and another hosted by our customer. In our repo, we keep track of all source code and configuration files. During the deployment, all the outputs are generated, from the IP core to the HTML reports and documents. Next, all these outputs are moved to a &amp;ldquo;clean repository.&amp;rdquo; Finally, the clean repository is pushed to the customer&amp;rsquo;s repository using a provided SSH key.&lt;/p&gt;
+&lt;p&gt;The customer owns a repository in which there is no need to run any script to read reports and documentation or import the IP core to the Vivado IP catalog. Depending on the project (for most projects), we also include the source code. Most projects involve designing custom libraries; hence, it does not make sense to export the IP core alone. Instead, we include the underlying library used to build the IP core, and, if it is requested, all related code such as external included files and tests.&lt;/p&gt;
+&lt;p&gt;
+  &lt;figure class=&#34;center&#34; &gt;
+    &lt;img src=&#34;https://ramonheras.com/images/DevOps-2/pipeline.jpg&#34;  alt=&#34;Deployment Pipeline&#34;   /&gt;
+    
+  &lt;/figure&gt;
+
+
+&lt;strong&gt;Figure 1&lt;/strong&gt; Deployment Pipeline&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;📝 &lt;em&gt;This post was initially released on the HLS Works Blog in 2020. The post was migrated to this web after the HLS Works closed in Sep 2021. The entire pipeline is planned to be open-sourced in the the near future.&lt;/em&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+</content>
+    </item>
+    
+  </channel>
+</rss>

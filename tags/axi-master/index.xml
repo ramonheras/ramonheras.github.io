@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>AXI-Master on Ramon Heras</title>
+    <link>https://ramonheras.com/tags/axi-master/</link>
+    <description>Recent content in AXI-Master on Ramon Heras</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 01 Jun 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://ramonheras.com/tags/axi-master/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Enabling Burst Transactions on an AXIM Interface in HLS</title>
+      <link>https://ramonheras.com/posts/axim-2/</link>
+      <pubDate>Tue, 01 Jun 2021 00:00:00 +0000</pubDate>
+      
+      <guid>https://ramonheras.com/posts/axim-2/</guid>
+      <description>Burst transactions are essential to take full advantage of the AXIM interface. After performing many tests and reading the documentation several times, I must say that there is not a well-defined behavior of Vitis HLS. In this post, I summarize my thoughts and experimentation results on optimizing burst transactions. You can find an introductory blog to this topic here.
+Unfortunately, the only way to ensure bursting is by diving into the wave viewer to check for it yourself.</description>
+      <content>&lt;p&gt;Burst transactions are essential to take full advantage of the AXIM interface. After performing many tests and reading the documentation several times, I must say that there is not a well-defined behavior of Vitis HLS. In this post, I summarize my thoughts and experimentation results on optimizing burst transactions. You can find an introductory blog to this topic here.&lt;/p&gt;
+&lt;p&gt;Unfortunately, the only way to ensure bursting is by diving into the wave viewer to check for it yourself. In Vitis 2020.2, there is a section specifically to report burst-related issues, the *AXI_M Burst Information&amp;rdquo; section located in the &amp;ldquo;Synthesis Summary.&amp;rdquo; In older versions, you can still find this information by skimming through the synthesis warnings or checking the synthesis log on the console. Unfortunately, this report is not accurate enough and tends to throw many false messages. Still, I follow the tool&amp;rsquo;s guidance, hoping that someday it&amp;rsquo;ll be more accurate or at least consistent with the documentation.&lt;/p&gt;
+&lt;h2 id=&#34;access-pattern&#34;&gt;Access Pattern&lt;/h2&gt;
+&lt;p&gt;The access pattern is the most critical aspect to make the burst optimization succeed. The access pattern must be sequential and incremental. The simplest way to ensure such an access pattern is by using an array as a top function parameter that is accessed from a single loop (to avoid overlapping).&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt;(&lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; i&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;; i&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;ARRAY_SIZE; &lt;span style=&#34;color:#f92672&#34;&gt;++&lt;/span&gt;i)
+    outputArray[i] &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; inputArray[i]&lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt;val;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;top-parameter-alignment&#34;&gt;Top Parameter Alignment&lt;/h2&gt;
+&lt;p&gt;When you tell HLS to use a particular interface (AXIM or AXI Lite), HLS just adds an IP core called an adapter that defines the bus functional model and takes care of all the interfacing logic (See pages 233-236). The alignment of the parameter that you put on the top function concerns the interfacing between the HLS core and the adapter. Types aligned to a smaller value than the interface width lead to a bottleneck. This is because the AXIM adapter is capable of reading up to 4 bytes per clock cycle (for a 32-bit wide interface), but the HLS core only reads from the adapter the number of bytes to which the top parameter is aligned, per clock cycle. For instance, if the top parameter is a char, access is limited to only a single byte per clock.&lt;/p&gt;
+&lt;h2 id=&#34;quick-note-on-structs&#34;&gt;Quick Note on Structs&lt;/h2&gt;
+&lt;p&gt;As previously mentioned, when using structs, be careful with alignment since it limits the access in HLS. In the example below, the struct alignment is 1 byte, which limits access to a single byte of data per clock cycle. You might be tempted to use pragmas to solve this issue, perhaps partitioning the inner array  or aggregating the struct, but none of those solutions will work. Partitioning the inner array will not work because the only place to put this pragma is in the struct constructor, and since it is an interface, the pragmas inside of it are ignored. And aggregating the struct will not work neither because using the aggregate pragma on an AXI master interface is not allowed . In contrast, if you were after an AXI stream interface, the aggregation would be automatic. The correct solution is much simpler. Simply align the struct properly using the C++ keyword alignas to read the struct entirely in a single clock cycle.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span style=&#34;color:#75715e&#34;&gt;//Default alignment 1 byte
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;struct&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;Sample_t&lt;/span&gt;{
+    &lt;span style=&#34;color:#66d9ef&#34;&gt;char&lt;/span&gt; data[&lt;span style=&#34;color:#ae81ff&#34;&gt;4&lt;/span&gt;];
+};
+
+&lt;span style=&#34;color:#75715e&#34;&gt;//Proper alignment 4 bytes
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;struct&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;alignas&lt;/span&gt;(&lt;span style=&#34;color:#ae81ff&#34;&gt;4&lt;/span&gt;) Sample_t{
+    &lt;span style=&#34;color:#66d9ef&#34;&gt;char&lt;/span&gt; data[&lt;span style=&#34;color:#ae81ff&#34;&gt;4&lt;/span&gt;];
+};
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;memcpy&#34;&gt;Memcpy?&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;void&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;SimpleCore2b&lt;/span&gt;(&lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; inputArray[ARRAY_SIZE], &lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; outputArray[ARRAY_SIZE], ap_int&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;8&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; val){
+&lt;span style=&#34;color:#75715e&#34;&gt;#pragma HLS interface s_axilite port=return bundle=CONTROL
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;#pragma HLS interface s_axilite port=val bundle=CONTROL
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;#pragma HLS interface m_axi port=inputArray offset=slave bundle=GMEM0
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;#pragma HLS interface m_axi port=outputArray offset=slave bundle=GMEM0
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;
+
+&lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; localBuffer[ARRAY_SIZE];
+memcpy(localBuffer, (&lt;span style=&#34;color:#66d9ef&#34;&gt;const&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;*&lt;/span&gt;)inputArray, &lt;span style=&#34;color:#66d9ef&#34;&gt;sizeof&lt;/span&gt;(&lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt;)&lt;span style=&#34;color:#f92672&#34;&gt;*&lt;/span&gt;ARRAY_SIZE);
+
+
+&lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt;(&lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; i&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;; i&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;ARRAY_SIZE; &lt;span style=&#34;color:#f92672&#34;&gt;++&lt;/span&gt;i)
+    outputArray[i] &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; localBuffer[i]&lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt;val;
+
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;In many examples, a local buffer is used along with memcpy to copy the data from the parameter (the interface) to the local buffer; see the code above. This approach is necessary when the burst optimization is not being applied. Sometimes, HLS cannot guess burst length due to a bad access pattern or other reasons. Using a local buffer effectively forces burst transactions, though this strategy has two main drawbacks. First, additional memory resources are needed to allocate the local buffer [either SLICEMs (to create distributed RAM), BRAMs, or URAMs]. Second, the burst length is of a fixed size, filling the entire buffer regardless of whether the entire buffer is needed.&lt;/p&gt;
+&lt;h2 id=&#34;volatile&#34;&gt;Volatile?&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;    &lt;span style=&#34;color:#66d9ef&#34;&gt;void&lt;/span&gt; fooA(&lt;span style=&#34;color:#66d9ef&#34;&gt;volatile&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; inputArray[ARRAY_SIZE])
+    &lt;span style=&#34;color:#75715e&#34;&gt;// Or
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;    &lt;span style=&#34;color:#66d9ef&#34;&gt;void&lt;/span&gt; fooB(&lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; inputArray[ARRAY_SIZE])
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Xilinx documentation is not very clear about whether or not to use the volatile qualifier on the top parameter. On pages 159 and 160, they state that volatile, following the standard C/C++ behavior, instructs the HLS tool not to optimize the variable to which it is applied. This may include no burst access, port widening, or dead code elimination.&lt;/p&gt;
+&lt;p&gt;But then, on pages &lt;a href=&#34;https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_2/ug1399-vitis-hls.pdf#page=169&#34;&gt;169-171&lt;/a&gt; and &lt;a href=&#34;https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_2/ug1399-vitis-hls.pdf#page=228&#34;&gt;228-238&lt;/a&gt;, Xilinx provides many examples using the volatile and explains that volatile is used on ports (top function parameters) that are read from or written to several times during the code execution, especially on pointers. This same section refers to &amp;ldquo;Optimizing Burst Transfers&amp;rdquo; (&lt;a href=&#34;https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_2/ug1399-vitis-hls.pdf#page=315&#34;&gt;page 315&lt;/a&gt;), where there is yet another example without the volatile keyword. Furthermore, using volatile throws the burst failure 5, &lt;a href=&#34;https://www.xilinx.com/html_docs/xilinx2020_2/hls-guidance/214-227.html&#34;&gt;error [214-227]&lt;/a&gt;. One more caveat is that you cannot use an arbitrary precision (AP) type (such as ap_int or ap_fixed) along with the volatile qualifier since AP types do not support the volatile qualifier (and the code would not compile), see &lt;a href=&#34;https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_2/ug1399-vitis-hls.pdf#page=160&#34;&gt;page 160&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;Well, that is the theory; in practice, using volatile does not prevent bursting every time. Generally, the impact on resource utilization is limited, but it can have a considerable effect on everything from resources to performance depending on the case. The only way to make sure that everything is working properly is by checking the wave window. I personally tend to follow the tool guidance and generally would not use the volatile qualifier in this scenario. Another caution that I take is not reading/writing the same element several times but instead, copying it to/from another variable before. That is not strictly necessary, but it is good practice, especially when writing/reading to variables instead of arrays. The code snippets below reflect what I&amp;rsquo;ve seen during code reviews.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span style=&#34;color:#75715e&#34;&gt;// Avoid writing to an output twice 
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;out[i] &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;;
+&lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt;(something())
+    out[i] &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; var; &lt;span style=&#34;color:#75715e&#34;&gt;//second write
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;
+
+&lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt;(something()) out[i] &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; var; &lt;span style=&#34;color:#75715e&#34;&gt;//Writing once
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;else&lt;/span&gt;            out[i] &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;; 
+
+
+&lt;span style=&#34;color:#75715e&#34;&gt;// Avoid reading from an input twice 
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt;(something(in[i])) var &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; in[i]; &lt;span style=&#34;color:#75715e&#34;&gt;//Second read
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;else&lt;/span&gt;                 var &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;;
+
+&lt;span style=&#34;color:#66d9ef&#34;&gt;auto&lt;/span&gt; aux &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; in[i]; &lt;span style=&#34;color:#75715e&#34;&gt;//Reading once
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;if&lt;/span&gt;(something(aux))  var &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; aux; 
+&lt;span style=&#34;color:#66d9ef&#34;&gt;else&lt;/span&gt;                var &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;just-checked-the-wave-viewer-and-the-burst-length-is-not-fully-optimal&#34;&gt;Just Checked the Wave Viewer, and the Burst Length Is Not Fully Optimal&amp;hellip;&lt;/h2&gt;
+&lt;p&gt;After making sure that the access pattern is perfect or even using memcpy to force it, you might find that the burst length is shorter than the optimal length. For instance, a for loop might be split into several bursts. This scenario is quite common because  Vitis HLS limits the maximum burst length by default to just 16 beats. To change this, increment the burst read/write size to the desired value (256 is the maximum for a 32-bit wide interface). You can do this in either of the following ways.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;Add the options max_read_burst_length=256 or max_write_burst_length=256 to the interface pragma&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Modify the default settings at &lt;code&gt;solution settings&lt;/code&gt; &amp;gt; &lt;code&gt;general / configuration settings&lt;/code&gt; &amp;gt; &lt;code&gt;config interface&lt;/code&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;When setting up this value, there are two limitations:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;The AW_LEN signal, which specifies the burst length (number of beats per transaction), is only 8 bits wide; therefore, the maximum value is 255. In AXI, the minimum length is one beat, so the transaction length is the AW_LENGTH value plus one. This way, a value of AW_LENGTH of 0 signifies a single beat transaction (the minimum). Therefore, the maximum burst size is really 256.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;The limit for a burst is 4 KB per transaction; this is an AXI standard limitation. Therefore the maximum burst size depends on the channel TDATA width as well.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;The following formula agglutinates the two limitations described above:&lt;/p&gt;
+&lt;p&gt;$$
+maxReadBurstLength = min(4096/axiChannelByteWidth,\ 256)
+$$&lt;/p&gt;
+&lt;h2 id=&#34;optimizing-a-bit-more&#34;&gt;Optimizing A Bit More&lt;/h2&gt;
+&lt;p&gt;By adding the latency option to the interface pragma, you can specify the expected latency. That might be a little confusing at first glance since there are two latencies involved with an AXIM burst.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Read latency: the number of clock cycles between requesting a read and receiving the first datum&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Write latency: the amount of time between the first write request and receiving the write acknowledgment&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Specifying this latency option allows your IP to request access to the channel before it is needed. The best way to optimize your system is by monitoring all the transactions and synchronizing the different modules to share the memory bandwidth efficiently, rather than playing with the latency option alone. Note that if you choose a value too high, the IP core might have access to the channel before actually needing it, therefore not using it and wasting bandwidth.&lt;/p&gt;
+&lt;p&gt;Similarly, if the latency value is too low, your core might stall waiting for access. As a good starting point, I would leave the default value as is. On &lt;a href=&#34;https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_2/ug1399-vitis-hls.pdf#page=311&#34;&gt;page 311&lt;/a&gt;, there is a more detailed explanation of the implied latencies.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;    &lt;span style=&#34;color:#75715e&#34;&gt;#pragma HLS interface m_axi port=outputArray offset=slave bundle=GMEM0 latency=&amp;lt;value&amp;gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;last-notes-when-using-axim-powered-ip-cores&#34;&gt;Last Notes When Using AXIM Powered IP Cores&lt;/h2&gt;
+&lt;p&gt;In addition to the practices discussed in the previous section, another precaution must be taken when inferring burst transactions. A read or write burst must not cross the 4 KB boundaries; this rule is an AXI standard limitation. To verify this, the following statement must be true:&lt;/p&gt;
+&lt;p&gt;$$
+\displaylines{(StartingAddr\ \%\ 4096)+BurstLength*BurstSize&amp;lt;4K=4096\\&lt;br&gt;
+BurstLength→Number\ of\ transfers/beats\\&lt;br&gt;
+BurstSize→Number\ of\ bytes\ per\ transfer/beat}
+$$&lt;/p&gt;
+&lt;p&gt;For the first example (100 beats of 4 bytes) and given an starting address of 0x7871D0, the statement is as follows:&lt;/p&gt;
+&lt;p&gt;$$
+\displaylines{(7893456\ \%\ 4096)+100*4&amp;lt;4K=4096\rightarrow 464+400&amp;lt;4K\rightarrow864&amp;lt;4096 \rightarrow OK!}
+$$&lt;/p&gt;
+&lt;p&gt;The easiest way to avoid manually checking the above all the time is to use buffers already aligned to 4 KB; this method gives you the benefit of pushing the burst size to the 4 KB limit. See the examples below:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span style=&#34;color:#75715e&#34;&gt;// Instead of This
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; buff[N];
+
+&lt;span style=&#34;color:#75715e&#34;&gt;// This (C++11)
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;alignas&lt;/span&gt;(&lt;span style=&#34;color:#ae81ff&#34;&gt;4096&lt;/span&gt;) &lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; p[N];
+
+&lt;span style=&#34;color:#75715e&#34;&gt;// This (C11 User space)
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;#include&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;&amp;lt;stdlib.h&amp;gt;&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;
+&lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;*&lt;/span&gt; buff &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; (&lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;*&lt;/span&gt;)aligned_alloc(&lt;span style=&#34;color:#ae81ff&#34;&gt;4096&lt;/span&gt;, &lt;span style=&#34;color:#66d9ef&#34;&gt;sizeof&lt;/span&gt;(&lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt;)&lt;span style=&#34;color:#f92672&#34;&gt;*&lt;/span&gt;N);
+
+&lt;span style=&#34;color:#75715e&#34;&gt;// This (C Kernel space)
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;#include&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;&amp;lt;linux/slab.h&amp;gt;&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;
+&lt;span style=&#34;color:#66d9ef&#34;&gt;struct&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;kmem_cache_t&lt;/span&gt;
+    &lt;span style=&#34;color:#f92672&#34;&gt;*&lt;/span&gt;buff_cache &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; (kmem_cache_t&lt;span style=&#34;color:#f92672&#34;&gt;*&lt;/span&gt;)kmem_cache_create(
+        &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;buff_4k_cache&amp;#34;&lt;/span&gt;,
+        &lt;span style=&#34;color:#66d9ef&#34;&gt;sizeof&lt;/span&gt;(&lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt;)&lt;span style=&#34;color:#f92672&#34;&gt;*&lt;/span&gt;N,
+        &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;12&lt;/span&gt;, &lt;span style=&#34;color:#75715e&#34;&gt;/* 4K alignment */&lt;/span&gt;
+        SLAB_HWCACHE_ALIGN); &lt;span style=&#34;color:#75715e&#34;&gt;// Add | SLAB_POISON | SLAB_RED_ZONE for debugging
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</content>
+    </item>
+    
+    <item>
+      <title>The AXI Master interface in HLS (The Basics)</title>
+      <link>https://ramonheras.com/posts/axim-1/</link>
+      <pubDate>Sat, 01 May 2021 00:00:00 +0000</pubDate>
+      
+      <guid>https://ramonheras.com/posts/axim-1/</guid>
+      <description>The AXI4 master is a powerfull interface that supports many features, but probably the most remarkable feature is support for burst transactions (Covered in detail in this post). An AXI Master (AXIM) interface is commonly used to access the DDR memory, though it can also be used to access other cores, such as BRAM or URAM. On the other side, an AXIM is complex and requires a lot of FPGA real estate.</description>
+      <content>&lt;p&gt;The AXI4 master is a powerfull interface that supports many features, but probably the most remarkable feature is support for burst transactions (Covered in detail in this post). An AXI Master (AXIM) interface is commonly used to access the DDR memory, though it can also be used to access other cores, such as BRAM or URAM. On the other side, an AXIM is complex and requires a lot of FPGA real estate. The operating frequency is also significantly reduced in comparison to different interfaces, such as the AXI stream.&lt;/p&gt;
+&lt;p&gt;This post addresses the basics of designing an AXIM-powered IP core. It is written with the assumption that the reader has some knowledge regarding this interface. If you do not, I recommend watching &lt;a href=&#34;https://www.youtube.com/watch?v=1zw1HBsjDH8&amp;amp;list=PLaSdxhHqai2_7WZIhCszu5PLSbZURmibN&#34;&gt;these videos&lt;/a&gt; or reviewing the &lt;a href=&#34;https://developer.arm.com/documentation/ihi0022/e/AMBA-AXI3-and-AXI4-Protocol-Specification&#34;&gt;AMBA AXI specification documentation&lt;/a&gt;. Throughout this post, I will be referring to the HLS documentation quite often, in particular to &lt;a href=&#34;https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_2/ug1399-vitis-hls.pdf&#34;&gt;UG1399-v2020.2&lt;/a&gt;. As I explain later on, some concepts in the documentation are not clear enough, in my opinion.&lt;/p&gt;
+&lt;p&gt;Let&amp;rsquo;s start with some code. The code below is the simplest example using AXIM that I can think of. It takes an input array and adds the value of val to each element. Both val and the starting address from which the AXI master interface will read the array are set through an AXI-Lite slave interface.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;void&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;SimpleCore&lt;/span&gt;( &lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; inputArray[ARRAY_SIZE], &lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; outputArray[ARRAY_SIZE], ap_int&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;8&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;gt;&lt;/span&gt; val){
+	&lt;span style=&#34;color:#75715e&#34;&gt;#pragma HLS interface s_axilite port=return bundle=CONTROL
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#75715e&#34;&gt;#pragma HLS interface s_axilite port=val bundle=CONTROL
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#75715e&#34;&gt;#pragma HLS interface m_axi port=inputArray offset=slave bundle=GMEM0
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#75715e&#34;&gt;#pragma HLS interface m_axi port=outputArray offset=slave bundle=GMEM0
+&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;
+	&lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt;(&lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; i&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;; i&lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt;ARRAY_SIZE; &lt;span style=&#34;color:#f92672&#34;&gt;++&lt;/span&gt;i)
+		outputArray[i] &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; inputArray[i]&lt;span style=&#34;color:#f92672&#34;&gt;+&lt;/span&gt;val;
+ };
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;offsetslave&#34;&gt;Offset=slave?&lt;/h2&gt;
+&lt;p&gt;The AXIM is a master interface, so it is responsible for reading the data. The starting address from which to start reading is known as the slave address or offset. With the offset parameter, we specify how to tell our IP core the address. I have set it to slave, which causes the HLS tool to create a slave register to set the slave address. This register can either be read or written by your system&amp;rsquo;s processor through an AXI-Lite slave interface that is also added to your IP core.&lt;/p&gt;
+&lt;p&gt;There are other modes for this setting, such as &amp;ldquo;fixed&amp;rdquo; or &amp;ldquo;off,&amp;rdquo; but these modes are rarely used. The &amp;ldquo;direct&amp;rdquo; mode tells the HLS tool to add an extra input to the core instead of using an AXI Lite register. Finally, the &amp;ldquo;off&amp;rdquo; option does not create any offset port nor an AXI-Lite register. In this last case, the starting address is configured in the IP Integrator window (&amp;ldquo;Base address of target slave,&amp;rdquo; &lt;a href=&#34;https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_2/ug1399-vitis-hls.pdf#page=241&#34;&gt;page 241&lt;/a&gt;) when instantiating the core in the block design in Vivado. Note that this last approach does not allow you to change the address at runtime.&lt;/p&gt;
+&lt;h2 id=&#34;int-or-intsize&#34;&gt;&lt;code&gt;int*&lt;/code&gt; or &lt;code&gt;int[SIZE]&lt;/code&gt;?&lt;/h2&gt;
+&lt;p&gt;In C/C++, there is no difference between both options. However, I prefer the second option because it tells HLS the burst depth so that I do not have to specify it manually with the pragma option depth, this way you keep the pragma line cleaner. The tool might indicate that the depth is still 0 but the simulation is not going to fail, as it would do if you were not specified the size anywhere.&lt;/p&gt;
+&lt;p&gt;The depth parameter indicates the maximum burst length and is used in co-simulation. HLS uses the depth parameter to calculate the size of the FIFO that interfaces the C++ test bench with the RTL core under test. A FIFO is necessary for each streaming interface, including AXIM and AXI-Stream. If the depth parameter is not specified, the cosim is likely to fail since HLS usually cannot deduce the burst length from the code.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt; &lt;span style=&#34;color:#75715e&#34;&gt;#pragma HLS interface m_axi port=outputArray depth=100 offset=slave bundle=GMEM0
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;top-parameter&#34;&gt;Top Parameter&lt;/h2&gt;
+&lt;p&gt;The top function parameter will most likely be an array or pointer (which, in practice, are the same), but of what type? As with other interfaces, you can either use (1) a C/C++ type (int, char, etc.…), (2) an arbitrary type (ap_int, ap_uint. Check out the post &amp;ldquo;Why use arbitrary types&amp;rdquo;) or (3) a custom struct. Simplicity is best, especially with an AXI Master interface, so I tend to use an int32 because it is of the same size as the interface, 32 bits. Sometimes a struct might be more suitable, but it can be tricky due to alignment concerns—learn more about alignment in the Enabling Burst Transactions post.&lt;/p&gt;
+&lt;h2 id=&#34;last-notes-when-using-axim-powered-ip-cores&#34;&gt;Last Notes When Using AXIM Powered IP Cores&lt;/h2&gt;
+&lt;p&gt;One important precaution must be taken when setting the slave address. Make sure that this address is aligned with the interface width (normally 4 bytes). To check this, you must make sure that the starting address value modulo the interface byte width is 0 . Or, since the interface width is limited to a power of two by the standard, the first least significant bits must be 0.&lt;/p&gt;
+&lt;p&gt;$$
+\displaylines{StartingAddr \% AximTdataByteWidth== 0 == StartingAddr[(AximDataByteWidth-1):0 ]\\&lt;br&gt;
+[a:b]→range\ of\ bits\ from\ \mathbf{a}\ to\ \mathbf{b}\ boundaries\ included.\ Ej\ [2:0]→[b_2,b_1,b_0]}
+$$&lt;/p&gt;
+&lt;p&gt;When dealing with burst transactions, there is another critical aspect to remember regarding burst lengths. Learn more about this issue by reading the article &lt;strong&gt;Enabling Burst Transactions&lt;/strong&gt;.&lt;/p&gt;
+</content>
+    </item>
+    
+  </channel>
+</rss>

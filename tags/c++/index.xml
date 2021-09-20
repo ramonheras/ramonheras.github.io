@@ -1,24 +1,12 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Ramon Heras</title>
-    <link>https://ramonheras.com/</link>
-    <description>Recent content on Ramon Heras</description>
+    <title>C&#43;&#43; on Ramon Heras</title>
+    <link>https://ramonheras.com/tags/c&#43;&#43;/</link>
+    <description>Recent content in C&#43;&#43; on Ramon Heras</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 14 Sep 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://ramonheras.com/index.xml" rel="self" type="application/rss+xml" />
-    <item>
-      <title>About</title>
-      <link>https://ramonheras.com/about/</link>
-      <pubDate>Tue, 14 Sep 2021 00:00:00 +0000</pubDate>
-      
-      <guid>https://ramonheras.com/about/</guid>
-      <description>Hi My name is Ramón Heras. I&amp;rsquo;m a Software Engineer that loves solving complex problems, especially as part of a motivated team 🙌. I also enjoy learning new things; new technologies and challenges don&amp;rsquo;t hold me back. Since I&amp;rsquo;m pretty picky, I prefer to take my time to find reliable and maintainable solutions in the long term; system architecture design is fascinating, innit? Watching YouTube videos is my favorite entertainment, mainly gadget reviews and unboxings.</description>
-      <content>&lt;h2 id=&#34;hi&#34;&gt;Hi&lt;/h2&gt;
-&lt;p&gt;My name is Ramón Heras. I&amp;rsquo;m a Software Engineer that loves solving complex problems, especially as part of a motivated team 🙌. I also enjoy learning new things; new technologies and challenges don&amp;rsquo;t hold me back. Since I&amp;rsquo;m pretty picky, I prefer to take my time to find reliable and maintainable solutions in the long term; system architecture design is fascinating, innit? Watching YouTube videos is my favorite entertainment, mainly gadget reviews and unboxings.&lt;/p&gt;
-</content>
-    </item>
-    
+    <lastBuildDate>Tue, 01 Jun 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://ramonheras.com/tags/c++/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Enabling Burst Transactions on an AXIM Interface in HLS</title>
       <link>https://ramonheras.com/posts/axim-2/</link>

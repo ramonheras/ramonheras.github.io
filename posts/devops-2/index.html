@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>Automate HLS IP Core Deployment :: Ramon Heras</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="In the last post, we introduced our new CI system and its remarkable features, such as automated testing and code coverage report generation. However, that was just the beginning step in our journey to automate most processes to save time and focus on what matters, providing better-quality code to our customers. In this second stage, we have automated the deployment process. In our case, this boils down to pushing repository changes to our customers&amp;rsquo; git server." />
+<meta name="keywords" content="" />
+<meta name="robots" content="noodp" />
+<link rel="canonical" href="https://ramonheras.com/posts/devops-2/" />
+
+
+
+
+<link rel="stylesheet" href="https://ramonheras.com/assets/style.css">
+
+  <link rel="stylesheet" href="https://ramonheras.com/assets/blue.css">
+
+
+
+
+
+
+<link rel="apple-touch-icon" href="https://ramonheras.com/img/apple-touch-icon-192x192.png">
+
+  <link rel="shortcut icon" href="https://ramonheras.com/img/favicon/blue.png">
+
+
+
+<meta name="twitter:card" content="summary" />
+
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Automate HLS IP Core Deployment">
+<meta property="og:description" content="In the last post, we introduced our new CI system and its remarkable features, such as automated testing and code coverage report generation. However, that was just the beginning step in our journey to automate most processes to save time and focus on what matters, providing better-quality code to our customers. In this second stage, we have automated the deployment process. In our case, this boils down to pushing repository changes to our customers&amp;rsquo; git server." />
+<meta property="og:url" content="https://ramonheras.com/posts/devops-2/" />
+<meta property="og:site_name" content="Ramon Heras" />
+
+  
+    <meta property="og:image" content="https://ramonheras.com/img/favicon/blue.png">
+  
+
+<meta property="og:image:width" content="2048">
+<meta property="og:image:height" content="1024">
+
+  <meta property="article:section" content="Xilinx High-Level Synthesis" />
+
+
+  <meta property="article:published_time" content="2021-03-01 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body class="blue">
+
+
+<div class="container center headings--one-size">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    Ramon Heras
+  </div>
+</a>
+
+    </div>
+    
+      <div class="menu-trigger">menu</div>
+    
+  </div>
+  
+    <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+      
+    
+
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<div class="post">
+  <h1 class="post-title">
+    <a href="https://ramonheras.com/posts/devops-2/">Automate HLS IP Core Deployment</a></h1>
+  <div class="post-meta">
+    
+      <span class="post-date">
+        2021-03-01 
+      </span>
+    
+    
+    <span class="post-author">:: Ramon Heras</span>
+    
+  </div>
+
+  
+  <span class="post-tags">
+    
+    #<a href="https://ramonheras.com/tags/xilinx-hls/">Xilinx-HLS</a>&nbsp;
+    
+    #<a href="https://ramonheras.com/tags/c&#43;&#43;/">C&#43;&#43;</a>&nbsp;
+    
+    #<a href="https://ramonheras.com/tags/devops/">DevOps</a>&nbsp;
+    
+    #<a href="https://ramonheras.com/tags/deployment/">Deployment</a>&nbsp;
+    
+    #<a href="https://ramonheras.com/tags/github-workflows/">GitHub-Workflows</a>&nbsp;
+    
+  </span>
+  
+
+  
+
+  
+
+  <div class="post-content"><div>
+        <p>In the last post, we introduced our new CI system and its remarkable features, such as automated testing and code coverage report generation. However, that was just the beginning step in our journey to automate most processes to save time and focus on what matters, providing better-quality code to our customers. In this second stage, we have automated the deployment process. In our case, this boils down to pushing repository changes to our customers&rsquo; git server.</p>
+<p>We understand that each organization uses unique processes that do not necessarily match ours; therefore, the main goal was to isolate our customers&rsquo; processes from ours. To accomplish this task, we used two separated repos: one in our git server provider, and another hosted by our customer. In our repo, we keep track of all source code and configuration files. During the deployment, all the outputs are generated, from the IP core to the HTML reports and documents. Next, all these outputs are moved to a &ldquo;clean repository.&rdquo; Finally, the clean repository is pushed to the customer&rsquo;s repository using a provided SSH key.</p>
+<p>The customer owns a repository in which there is no need to run any script to read reports and documentation or import the IP core to the Vivado IP catalog. Depending on the project (for most projects), we also include the source code. Most projects involve designing custom libraries; hence, it does not make sense to export the IP core alone. Instead, we include the underlying library used to build the IP core, and, if it is requested, all related code such as external included files and tests.</p>
+<p>
+  <figure class="center" >
+    <img src="/images/DevOps-2/pipeline.jpg"  alt="Deployment Pipeline"   />
+    
+  </figure>
+
+
+<strong>Figure 1</strong> Deployment Pipeline</p>
+<blockquote>
+<p>📝 <em>This post was initially released on the HLS Works Blog in 2020. The post was migrated to this web after the HLS Works closed in Sep 2021. The entire pipeline is planned to be open-sourced in the the near future.</em></p>
+</blockquote>
+
+      </div></div>
+
+  
+  
+<div class="pagination">
+    <div class="pagination__title">
+        <span class="pagination__title-h">Read other posts</span>
+        <hr />
+    </div>
+    <div class="pagination__buttons">
+        
+        <span class="button previous">
+            <a href="https://ramonheras.com/posts/hls-types/">
+                <span class="button__icon">←</span>
+                <span class="button__text">Why use HLS data types</span>
+            </a>
+        </span>
+        
+        
+        <span class="button next">
+            <a href="https://ramonheras.com/posts/devops-1/">
+                <span class="button__text">Automate test execution HLS</span>
+                <span class="button__icon">→</span>
+            </a>
+        </span>
+        
+    </div>
+</div>
+
+  
+
+  
+
+</div>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2021 Powered by <a href="http://gohugo.io">Hugo</a></span>
+    
+        <span>:: Theme made by <a href="https://twitter.com/panr">panr</a></span>
+      </div>
+  </div>
+</footer>
+
+<script src="https://ramonheras.com/assets/main.js"></script>
+<script src="https://ramonheras.com/assets/prism.js"></script>
+
+
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>
